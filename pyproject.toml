@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yolo-validator"
+version = "0.2.0"
+description = "Standalone reference validator for Ultralytics YOLO models across runtimes; a true proxy for the Ultralytics validator on platforms it cannot run."
+authors = [{ name = "Sébastien Taylor", email = "sebastien@au-zone.com" }]
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Intended Audience :: Developers",
+]
+dependencies = [
+    "numpy>=1.26",
+    "opencv-python>=4.8",
+    "pycocotools>=2.0.7",
+]
+
+[project.optional-dependencies]
+onnx = ["onnxruntime>=1.17"]
+# NOTE: the 'torch' extra pulls Ultralytics, which is AGPL-3.0. The core
+# (NumPy/OpenCV) and 'onnx' paths carry no AGPL obligation. See NOTICE / README.
+torch = ["torch>=2.1", "ultralytics>=8.3"]
+dev = ["pytest>=8.0", "pytest-cov>=4.0"]
+
+[project.scripts]
+yolo-validator = "yolo_validator.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["yolo_validator*"]

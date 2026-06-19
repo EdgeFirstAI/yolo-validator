@@ -1,0 +1,33 @@
+yolo-validator
+Copyright 2026 Au-Zone Technologies
+
+This product was developed by Au-Zone Technologies and is not affiliated
+with, endorsed by, or sponsored by Ultralytics.
+
+--------------------------------------------------------------------------------
+Optional dependency: Ultralytics (AGPL-3.0)
+
+The [torch] install extra depends on the Ultralytics package, which is
+distributed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+No Ultralytics source code is copied or vendored in this repository.
+The core ONNX/NumPy inference path has no dependency on Ultralytics and
+carries no AGPL obligation.
+
+--------------------------------------------------------------------------------
+Independently reimplemented techniques
+
+The per-class NMS box-offset technique and the max_wh=7680 constant used
+in this project are independently reimplemented from the published YOLO
+specification. These techniques were popularized by Ultralytics; no source
+code from Ultralytics was copied.
+
+--------------------------------------------------------------------------------
+Third-party components
+
+pycocotools — COCO Python API
+  Copyright (c) 2014-2015 Microsoft Corporation.
+  Licensed under a BSD-style license.
+  https://github.com/cocodataset/cocoapi
+
+Benchmark results reference the COCO val2017 dataset (CC BY 4.0).
+The dataset is not bundled with this software.
