@@ -1,0 +1,2823 @@
+{
+  "platform": "onnx-cuda",
+  "host": {
+    "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "cpu_count": 32,
+    "omp_num_threads": "1",
+    "python": "3.12.3",
+    "gpu": "NVIDIA GeForce RTX 4060",
+    "cuda_version": "12.4"
+  },
+  "eval": "crowd-as-normal",
+  "rows": [
+    {
+      "model": "yolo11m-seg",
+      "variant": "yolo11m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.5051648650236504,
+      "box_ap50": 0.671217467833342,
+      "mask_ap": 0.413892802248713,
+      "mask_ap50": 0.6426053605999301,
+      "fps_wall": 23.913937702363675,
+      "latency_ms": {
+        "pre": 0.3260190525848884,
+        "inf": 14.740754983219086,
+        "post": 6.291087153318221,
+        "e2e": 21.357861189122197
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11m-seg",
+      "variant": "yolo11m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.5051192060254587,
+      "box_ap50": 0.671173630889451,
+      "mask_ap": 0.4138944677832246,
+      "mask_ap50": 0.6425642869504824,
+      "fps_wall": 22.294262178872593,
+      "latency_ms": {
+        "pre": 0.31903999381465836,
+        "inf": 17.50231920644874,
+        "post": 6.403209104263806,
+        "e2e": 24.224568304527203
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11m-seg",
+      "variant": "yolo11m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.5028769600395383,
+      "box_ap50": 0.6685284141028793,
+      "mask_ap": 0.40778916882315874,
+      "mask_ap50": 0.6391002674828873,
+      "fps_wall": 19.012046010014974,
+      "latency_ms": {
+        "pre": 1.1836682483873289,
+        "inf": 19.179075469203443,
+        "post": 30.798705308860846,
+        "e2e": 51.16144902645162
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11m-seg",
+      "variant": "yolo11m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.5028770782060543,
+      "box_ap50": 0.6685284138901225,
+      "mask_ap": 0.40778916875921983,
+      "mask_ap50": 0.6391002674828873,
+      "fps_wall": 10.501891742567649,
+      "latency_ms": {
+        "pre": 0.6567619825985539,
+        "inf": 20.147283876462975,
+        "post": 72.97533701875273,
+        "e2e": 93.77938287781424
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11m",
+      "variant": "yolo11m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.5051648650236504,
+      "box_ap50": 0.671217467833342,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 73.0233924970936,
+      "latency_ms": {
+        "pre": 0.29198421763430815,
+        "inf": 10.318900083805785,
+        "post": 0.356452200570493,
+        "e2e": 10.967336502010586
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11m",
+      "variant": "yolo11m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.5051192060254587,
+      "box_ap50": 0.671173630889451,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 59.6355943909133,
+      "latency_ms": {
+        "pre": 0.2914462463872042,
+        "inf": 13.008768253572633,
+        "post": 0.4428565209993394,
+        "e2e": 13.743071020959176
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11m",
+      "variant": "yolo11m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.5028769600395383,
+      "box_ap50": 0.6685284141028793,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 56.045971822050134,
+      "latency_ms": {
+        "pre": 0.9919447010278732,
+        "inf": 14.361994180775845,
+        "post": 1.0459479490418853,
+        "e2e": 16.399886830845603
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11m",
+      "variant": "yolo11m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.5028770782060543,
+      "box_ap50": 0.6685284138901225,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 52.1885769564249,
+      "latency_ms": {
+        "pre": 0.5017078596451537,
+        "inf": 14.205541079867633,
+        "post": 3.0912346235051125,
+        "e2e": 17.7984835630179
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11n-seg",
+      "variant": "yolo11n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.3826544884244154,
+      "box_ap50": 0.5343267424898969,
+      "mask_ap": 0.3189938538282526,
+      "mask_ap50": 0.507007282050882,
+      "fps_wall": 23.510867732017388,
+      "latency_ms": {
+        "pre": 0.3192206948151579,
+        "inf": 2.868610654832446,
+        "post": 9.325400540500413,
+        "e2e": 12.513231890148017
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11n-seg",
+      "variant": "yolo11n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.38266680272131914,
+      "box_ap50": 0.5344440746210372,
+      "mask_ap": 0.31898187877462064,
+      "mask_ap50": 0.5069511564652386,
+      "fps_wall": 22.81551154338493,
+      "latency_ms": {
+        "pre": 0.3171324393013492,
+        "inf": 3.9703055003134065,
+        "post": 9.387830420263345,
+        "e2e": 13.6752683598781
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11n-seg",
+      "variant": "yolo11n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.37836966332612504,
+      "box_ap50": 0.5287329962540794,
+      "mask_ap": 0.3130058989910414,
+      "mask_ap50": 0.5007715917830409,
+      "fps_wall": 18.059666449992022,
+      "latency_ms": {
+        "pre": 1.1189852494089982,
+        "inf": 5.644756679935502,
+        "post": 46.93656129444374,
+        "e2e": 53.70030322378824
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11n-seg",
+      "variant": "yolo11n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.37836966338563366,
+      "box_ap50": 0.528732996543357,
+      "mask_ap": 0.3130058991951845,
+      "mask_ap50": 0.5007715920191201,
+      "fps_wall": 8.560499774016021,
+      "latency_ms": {
+        "pre": 0.6461259395216139,
+        "inf": 5.85155040937732,
+        "post": 108.84827466059033,
+        "e2e": 115.34595100948926
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11n",
+      "variant": "yolo11n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.38670444126828846,
+      "box_ap50": 0.5418775259655755,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 162.72917286867332,
+      "latency_ms": {
+        "pre": 0.27810796639241747,
+        "inf": 2.264145790456678,
+        "post": 0.3778980817674892,
+        "e2e": 2.920151838616585
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11n",
+      "variant": "yolo11n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.38670413109839963,
+      "box_ap50": 0.5418500386120654,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 131.6528371889014,
+      "latency_ms": {
+        "pre": 0.28304617348185274,
+        "inf": 3.27675575465546,
+        "post": 0.4221208996750647,
+        "e2e": 3.9819228278123773
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11n",
+      "variant": "yolo11n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.38183998707447436,
+      "box_ap50": 0.5352017897821607,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 122.56930973564303,
+      "latency_ms": {
+        "pre": 0.9473049884788721,
+        "inf": 4.569061717301264,
+        "post": 1.1940057582623054,
+        "e2e": 6.710372464042442
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11n",
+      "variant": "yolo11n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.3818395286471051,
+      "box_ap50": 0.5352017922694147,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 85.79491431144758,
+      "latency_ms": {
+        "pre": 0.4177855164838313,
+        "inf": 4.626558893210864,
+        "post": 5.267395137209015,
+        "e2e": 10.31173954690371
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11s-seg",
+      "variant": "yolo11s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.45569643415502037,
+      "box_ap50": 0.6194190911193459,
+      "mask_ap": 0.3744257594352098,
+      "mask_ap50": 0.589605101819577,
+      "fps_wall": 26.062883339503315,
+      "latency_ms": {
+        "pre": 0.3193455754430033,
+        "inf": 5.524432355404134,
+        "post": 7.794055103522259,
+        "e2e": 13.637833034369397
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo11s-seg",
+      "variant": "yolo11s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.45579142606294615,
+      "box_ap50": 0.6195688385524255,
+      "mask_ap": 0.3744293970882961,
+      "mask_ap50": 0.5895741213576929,
+      "fps_wall": 24.507353054544183,
+      "latency_ms": {
+        "pre": 0.31485437125957105,
+        "inf": 7.517153331893496,
+        "post": 7.847566867907881,
+        "e2e": 15.679574571060948
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo11s-seg",
+      "variant": "yolo11s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.4522434925946855,
+      "box_ap50": 0.6165470574855039,
+      "mask_ap": 0.3682846415137792,
+      "mask_ap50": 0.5858852590420895,
+      "fps_wall": 19.77667650436698,
+      "latency_ms": {
+        "pre": 1.1236612465951,
+        "inf": 9.07708642123169,
+        "post": 38.93142698148225,
+        "e2e": 49.132174649309036
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11s-seg",
+      "variant": "yolo11s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.4522435055265827,
+      "box_ap50": 0.6165470572863603,
+      "mask_ap": 0.36828464154276314,
+      "mask_ap50": 0.5858852580951819,
+      "fps_wall": 9.792445065221907,
+      "latency_ms": {
+        "pre": 0.6619215309146508,
+        "inf": 9.594284726793541,
+        "post": 90.40687779181044,
+        "e2e": 100.66308404951864
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11s",
+      "variant": "yolo11s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.4586980710542579,
+      "box_ap50": 0.624501521548497,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 128.0438085028166,
+      "latency_ms": {
+        "pre": 0.28814903291640803,
+        "inf": 4.217119057587115,
+        "post": 0.3763809901167406,
+        "e2e": 4.881649080620264
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11s",
+      "variant": "yolo11s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.45873012797141194,
+      "box_ap50": 0.6244886884951725,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 99.88629670504204,
+      "latency_ms": {
+        "pre": 0.29168672529631295,
+        "inf": 6.037375245345174,
+        "post": 0.4177834061149042,
+        "e2e": 6.746845376756392
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo11s",
+      "variant": "yolo11s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.45659358272838796,
+      "box_ap50": 0.6223519074849982,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 93.4033210288469,
+      "latency_ms": {
+        "pre": 0.9670816199785849,
+        "inf": 7.20291734691173,
+        "post": 1.0695839221658225,
+        "e2e": 9.239582889056138
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo11s",
+      "variant": "yolo11s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.45659358277044043,
+      "box_ap50": 0.6223519074849982,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 77.0114747828641,
+      "latency_ms": {
+        "pre": 0.4298306932410161,
+        "inf": 7.145778276559168,
+        "post": 4.060403174926044,
+        "e2e": 11.63601214472623
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.5239060732018246,
+      "box_ap50": 0.6963127866377234,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 72.81645701950129,
+      "latency_ms": {
+        "pre": 0.29770120970497377,
+        "inf": 10.333700246052468,
+        "post": 0.35633191081287807,
+        "e2e": 10.98773336657032
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.5239707289470183,
+      "box_ap50": 0.6963093093927882,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 59.42282995402682,
+      "latency_ms": {
+        "pre": 0.29499629301135427,
+        "inf": 12.98820757441863,
+        "post": 0.44257513508200647,
+        "e2e": 13.72577900251199
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.5220248498947574,
+      "box_ap50": 0.6941074966880167,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 55.957748533565415,
+      "latency_ms": {
+        "pre": 1.0067327406998423,
+        "inf": 14.35798632215628,
+        "post": 1.0627192431126953,
+        "e2e": 16.427438305968817
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.5220248496604537,
+      "box_ap50": 0.6941074947796941,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 52.28644052776483,
+      "latency_ms": {
+        "pre": 0.4945431658728818,
+        "inf": 14.193915655871734,
+        "post": 3.0718090675051077,
+        "e2e": 17.760267889249725
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.5164097829039361,
+      "box_ap50": 0.6855099573405564,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 73.56385266792338,
+      "latency_ms": {
+        "pre": 0.29132369490689597,
+        "inf": 10.458646411026711,
+        "post": 0.06693179250287358,
+        "e2e": 10.816901898436482
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.5164176155534753,
+      "box_ap50": 0.6855428457715299,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 59.768744625909704,
+      "latency_ms": {
+        "pre": 0.2938197974843206,
+        "inf": 13.189494069220382,
+        "post": 0.10152652341639623,
+        "e2e": 13.5848403901211
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.5153858468424312,
+      "box_ap50": 0.6834077281798239,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 59.231912256213704,
+      "latency_ms": {
+        "pre": 0.96314498293139,
+        "inf": 14.151370085758892,
+        "post": 0.39825357602693384,
+        "e2e": 15.512768644717216
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.5153858468424312,
+      "box_ap50": 0.6834077281798239,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 61.017389302362325,
+      "latency_ms": {
+        "pre": 0.49049964607999846,
+        "inf": 14.089573600783005,
+        "post": 0.4371314584430865,
+        "e2e": 15.01720470530609
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.5230902100652814,
+      "box_ap50": 0.6951961797561443,
+      "mask_ap": 0.4397289590453909,
+      "mask_ap50": 0.6675810232170346,
+      "fps_wall": 23.29768665723593,
+      "latency_ms": {
+        "pre": 0.32314934675232504,
+        "inf": 15.546116840472678,
+        "post": 6.372286407195498,
+        "e2e": 22.2415525944205
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.5230550185656353,
+      "box_ap50": 0.6951751113863441,
+      "mask_ap": 0.4396984484654366,
+      "mask_ap50": 0.6676351343059531,
+      "fps_wall": 20.55818888896406,
+      "latency_ms": {
+        "pre": 0.3254435666225618,
+        "inf": 20.874904665225767,
+        "post": 6.486386877787299,
+        "e2e": 27.686735109635627
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.5216172219528632,
+      "box_ap50": 0.6936073527015133,
+      "mask_ap": 0.4360216313116635,
+      "mask_ap50": 0.6643229902382061,
+      "fps_wall": 18.097700735982443,
+      "latency_ms": {
+        "pre": 1.1758258855720267,
+        "inf": 22.543085670109704,
+        "post": 30.10174156440027,
+        "e2e": 53.82065312008201
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.5216172211043885,
+      "box_ap50": 0.6936073508961892,
+      "mask_ap": 0.43602163042248476,
+      "mask_ap50": 0.6643229889245612,
+      "fps_wall": 10.039911137117977,
+      "latency_ms": {
+        "pre": 0.6482412159514983,
+        "inf": 23.461287165816653,
+        "post": 74.0493670509171,
+        "e2e": 98.15889543268526
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.5138413798491323,
+      "box_ap50": 0.6817817063584334,
+      "mask_ap": 0.433580006775641,
+      "mask_ap50": 0.6576725849756646,
+      "fps_wall": 23.438551943508582,
+      "latency_ms": {
+        "pre": 0.3257946038735099,
+        "inf": 15.722789046438992,
+        "post": 6.037462443776894,
+        "e2e": 22.086046094089397
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.5137988015010339,
+      "box_ap50": 0.6817658468708774,
+      "mask_ap": 0.4335831766970835,
+      "mask_ap50": 0.6575688888435619,
+      "fps_wall": 20.62886884358215,
+      "latency_ms": {
+        "pre": 0.32769603127380836,
+        "inf": 21.094911006611074,
+        "post": 6.117318582275766,
+        "e2e": 27.539925620160652
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.5126514882283747,
+      "box_ap50": 0.6799323996856182,
+      "mask_ap": 0.4302333126570654,
+      "mask_ap50": 0.6543706196168064,
+      "fps_wall": 18.439583663850264,
+      "latency_ms": {
+        "pre": 1.1764124955526791,
+        "inf": 22.36563876433139,
+        "post": 29.278732584920906,
+        "e2e": 52.82078384480498
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26m-seg",
+      "variant": "yolo26m-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.5126514882283747,
+      "box_ap50": 0.6799323996856182,
+      "mask_ap": 0.4302333126570654,
+      "mask_ap50": 0.6543706196168064,
+      "fps_wall": 10.345350211692686,
+      "latency_ms": {
+        "pre": 0.6535429973312515,
+        "inf": 23.26037180868773,
+        "post": 71.30742621843343,
+        "e2e": 95.22134102445241
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.40225350071787214,
+      "box_ap50": 0.5588457632775236,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 159.42071176931262,
+      "latency_ms": {
+        "pre": 0.28866575612919404,
+        "inf": 2.5298539349256317,
+        "post": 0.3674829418741865,
+        "e2e": 3.186002632929012
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.40222738150786724,
+      "box_ap50": 0.5588026923951246,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 135.86069284117045,
+      "latency_ms": {
+        "pre": 0.2834151868068147,
+        "inf": 3.242191125251702,
+        "post": 0.41084944452159106,
+        "e2e": 3.9364557565801075
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.3988356241029207,
+      "box_ap50": 0.5542041948255021,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 124.85368748783554,
+      "latency_ms": {
+        "pre": 0.9288174112369612,
+        "inf": 4.5499672758715795,
+        "post": 1.084143854736502,
+        "e2e": 6.562928541845043
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.39883560449685984,
+      "box_ap50": 0.5542041944095342,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 92.95019716057524,
+      "latency_ms": {
+        "pre": 0.40258369261310567,
+        "inf": 4.586560211042999,
+        "post": 4.42607051774664,
+        "e2e": 9.415214421402744
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.3962464611406056,
+      "box_ap50": 0.5488173917857359,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 164.4802006443038,
+      "latency_ms": {
+        "pre": 0.2749069515411975,
+        "inf": 2.692530476776301,
+        "post": 0.0628497667843476,
+        "e2e": 3.030287195101846
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.3962698626285081,
+      "box_ap50": 0.548852579220605,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 137.8679768726091,
+      "latency_ms": {
+        "pre": 0.2888255757105071,
+        "inf": 3.4527552346757147,
+        "post": 0.08311422974220477,
+        "e2e": 3.8246950401284265
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.3916581340365965,
+      "box_ap50": 0.5423656365784044,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 137.08182006446555,
+      "latency_ms": {
+        "pre": 0.9324968362370638,
+        "inf": 4.470319232430445,
+        "post": 0.44982516547310514,
+        "e2e": 5.852641234140614
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.3916581340365965,
+      "box_ap50": 0.5423656365784044,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 157.94789797742285,
+      "latency_ms": {
+        "pre": 0.3980476746299236,
+        "inf": 4.296698981934436,
+        "post": 0.28864702352804233,
+        "e2e": 4.983393680092402
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.39929466733386393,
+      "box_ap50": 0.55799498161356,
+      "mask_ap": 0.3407492277280184,
+      "mask_ap50": 0.5322642306114451,
+      "fps_wall": 25.6988044768977,
+      "latency_ms": {
+        "pre": 0.3208205346221803,
+        "inf": 3.2438119804690357,
+        "post": 8.337128932916675,
+        "e2e": 11.90176144800789
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.39930703634785525,
+      "box_ap50": 0.5580525303994653,
+      "mask_ap": 0.3408176448618057,
+      "mask_ap50": 0.5323534516955679,
+      "fps_wall": 24.601725906792105,
+      "latency_ms": {
+        "pre": 0.32198633835359947,
+        "inf": 4.791170266352128,
+        "post": 8.398890922986903,
+        "e2e": 13.51204752769263
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.3950728632697689,
+      "box_ap50": 0.5525395525334104,
+      "mask_ap": 0.33550775573988056,
+      "mask_ap50": 0.5256361721628025,
+      "fps_wall": 20.34490882007919,
+      "latency_ms": {
+        "pre": 1.0812196839215096,
+        "inf": 6.366773778801805,
+        "post": 40.27947335234181,
+        "e2e": 47.72746681506512
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.39507286229427596,
+      "box_ap50": 0.5525395492443458,
+      "mask_ap": 0.33550775653442716,
+      "mask_ap50": 0.5256361730685489,
+      "fps_wall": 9.380622627135436,
+      "latency_ms": {
+        "pre": 0.633417720041557,
+        "inf": 6.672209308229514,
+        "post": 97.83751439086707,
+        "e2e": 105.14314141913815
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.39005195709820933,
+      "box_ap50": 0.5453908554106992,
+      "mask_ap": 0.3342364740630019,
+      "mask_ap50": 0.5222857713726917,
+      "fps_wall": 26.484140742492002,
+      "latency_ms": {
+        "pre": 0.3218342061561998,
+        "inf": 3.4591836278472328,
+        "post": 7.7265883972926535,
+        "e2e": 11.507606231296085
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.39009661948359975,
+      "box_ap50": 0.5454181047123147,
+      "mask_ap": 0.33425177399210243,
+      "mask_ap50": 0.5222871059995551,
+      "fps_wall": 25.293311590176682,
+      "latency_ms": {
+        "pre": 0.3210143713571597,
+        "inf": 5.0143313388805835,
+        "post": 7.788652280648239,
+        "e2e": 13.123997990885982
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.38613068975645926,
+      "box_ap50": 0.5399037351659871,
+      "mask_ap": 0.32942013435125517,
+      "mask_ap50": 0.5161205802746178,
+      "fps_wall": 21.17347364870928,
+      "latency_ms": {
+        "pre": 1.0784120357869404,
+        "inf": 6.2639985433183485,
+        "post": 38.47453982796843,
+        "e2e": 45.81695040707372
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.38613068975645926,
+      "box_ap50": 0.5399037351659871,
+      "mask_ap": 0.32942013435125517,
+      "mask_ap50": 0.5161205802746178,
+      "fps_wall": 10.212187628476062,
+      "latency_ms": {
+        "pre": 0.6312318745661696,
+        "inf": 6.5623812383812945,
+        "post": 89.27198674322727,
+        "e2e": 96.46559985617473
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.47745012351697713,
+      "box_ap50": 0.6445087636502078,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 125.8684686270477,
+      "latency_ms": {
+        "pre": 0.2887636675412068,
+        "inf": 4.325001764038461,
+        "post": 0.3768723471352132,
+        "e2e": 4.9906377787148815
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.47744052927767533,
+      "box_ap50": 0.6444722045524619,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 100.39285061150484,
+      "latency_ms": {
+        "pre": 0.28847180669545197,
+        "inf": 6.073174324861611,
+        "post": 0.40644100757199336,
+        "e2e": 6.768087139129057
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.4752788994431184,
+      "box_ap50": 0.6415971849651548,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 91.91546331554417,
+      "latency_ms": {
+        "pre": 0.9609013444183804,
+        "inf": 7.419925910033263,
+        "post": 1.0256195011180278,
+        "e2e": 9.406446755569672
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-classic",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.475278899477172,
+      "box_ap50": 0.6415971848342177,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 78.34704221863336,
+      "latency_ms": {
+        "pre": 0.4571034514053736,
+        "inf": 7.204130099196524,
+        "post": 3.7470436409958308,
+        "e2e": 11.408277191597728
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.4695484069235941,
+      "box_ap50": 0.6325471268444988,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 129.2631391506463,
+      "latency_ms": {
+        "pre": 0.28844458748935725,
+        "inf": 4.481181420892245,
+        "post": 0.068128794329823,
+        "e2e": 4.837754802711425
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.46947219672354484,
+      "box_ap50": 0.6325872218715753,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 100.4550512603117,
+      "latency_ms": {
+        "pre": 0.2947203046060167,
+        "inf": 6.27593408509274,
+        "post": 0.08682754190231207,
+        "e2e": 6.657481931601069
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.4654235357201224,
+      "box_ap50": 0.6279330366326155,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 98.80447077759418,
+      "latency_ms": {
+        "pre": 1.1098712067460752,
+        "inf": 7.279829122350336,
+        "post": 0.2747573204946277,
+        "e2e": 8.66445764959104
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s-nmsfree",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.4654235357201224,
+      "box_ap50": 0.6279330366326155,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 108.85460309438466,
+      "latency_ms": {
+        "pre": 0.43828069755283056,
+        "inf": 7.113451399968408,
+        "post": 0.2785827051329348,
+        "e2e": 7.830314802654174
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.47303427676667253,
+      "box_ap50": 0.6413003607302661,
+      "mask_ap": 0.39998024948648064,
+      "mask_ap50": 0.6138752427225378,
+      "fps_wall": 26.992470652057328,
+      "latency_ms": {
+        "pre": 0.3195884876680793,
+        "inf": 5.879343051844625,
+        "post": 7.301475732648396,
+        "e2e": 13.500407272161102
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.47302780807493217,
+      "box_ap50": 0.6413135791389715,
+      "mask_ap": 0.399977538663254,
+      "mask_ap50": 0.6139477102755534,
+      "fps_wall": 24.66107891992769,
+      "latency_ms": {
+        "pre": 0.3157083612226415,
+        "inf": 9.171220294450176,
+        "post": 7.345897017570678,
+        "e2e": 16.832825673243498
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.4697982917144497,
+      "box_ap50": 0.6383371966265962,
+      "mask_ap": 0.3949551938669127,
+      "mask_ap50": 0.609760261749079,
+      "fps_wall": 20.717736113978695,
+      "latency_ms": {
+        "pre": 1.1396799413069367,
+        "inf": 10.857110682979684,
+        "post": 34.841633182478205,
+        "e2e": 46.83842380676482
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-classic",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.46979829185679023,
+      "box_ap50": 0.638337196766904,
+      "mask_ap": 0.39495519462076084,
+      "mask_ap50": 0.6097602649135202,
+      "fps_wall": 10.261739588162737,
+      "latency_ms": {
+        "pre": 0.6551537413204075,
+        "inf": 11.318659938726418,
+        "post": 84.02390952371454,
+        "e2e": 95.99772320376135
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.46608132589085965,
+      "box_ap50": 0.6306138113648816,
+      "mask_ap": 0.3952465340723526,
+      "mask_ap50": 0.606299890400453,
+      "fps_wall": 28.21467265244019,
+      "latency_ms": {
+        "pre": 0.3229256988008274,
+        "inf": 6.07952724408824,
+        "post": 6.629855100481655,
+        "e2e": 13.032308043370723
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.46604836186996557,
+      "box_ap50": 0.630559156846166,
+      "mask_ap": 0.395220284893749,
+      "mask_ap50": 0.6063091616749723,
+      "fps_wall": 25.681595302268615,
+      "latency_ms": {
+        "pre": 0.3181839211523766,
+        "inf": 9.3780999611452,
+        "post": 6.675849879928864,
+        "e2e": 16.37213376222644
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.46245582116112893,
+      "box_ap50": 0.6268904124101274,
+      "mask_ap": 0.38974601577557016,
+      "mask_ap50": 0.6009472876650653,
+      "fps_wall": 21.901353815470898,
+      "latency_ms": {
+        "pre": 1.106165254629581,
+        "inf": 10.720749732175138,
+        "post": 32.42401928103358,
+        "e2e": 44.250934267838296
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg-nmsfree",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.46245582116112893,
+      "box_ap50": 0.6268904124101274,
+      "mask_ap": 0.38974601577557016,
+      "mask_ap50": 0.6009472876650653,
+      "fps_wall": 10.893888969384133,
+      "latency_ms": {
+        "pre": 0.6504043239472244,
+        "inf": 11.227299836903258,
+        "post": 78.46846848040512,
+        "e2e": 90.3461726412556
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov5mu",
+      "variant": "yolov5mu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.48078501146935176,
+      "box_ap50": 0.6467885388701896,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 76.88296375521416,
+      "latency_ms": {
+        "pre": 0.2889583525364287,
+        "inf": 9.458529761718818,
+        "post": 0.360880940570496,
+        "e2e": 10.108369054825744
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolov5mu",
+      "variant": "yolov5mu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.4807952827804774,
+      "box_ap50": 0.6467700279178472,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 67.82158012251654,
+      "latency_ms": {
+        "pre": 0.28928625834232663,
+        "inf": 10.916285124127171,
+        "post": 0.3970846823969623,
+        "e2e": 11.602656064866459
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolov5mu",
+      "variant": "yolov5mu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.4800430504041066,
+      "box_ap50": 0.6449788754693623,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 63.39453095213376,
+      "latency_ms": {
+        "pre": 0.9635526696942016,
+        "inf": 12.256219337137967,
+        "post": 1.0986444896883063,
+        "e2e": 14.318416496520475
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov5mu",
+      "variant": "yolov5mu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.48004305013263754,
+      "box_ap50": 0.6449788754693623,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 57.11081148429519,
+      "latency_ms": {
+        "pre": 0.4146920305881819,
+        "inf": 12.069667055901308,
+        "post": 3.678000335012244,
+        "e2e": 16.162359421501733
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov5nu",
+      "variant": "yolov5nu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.3370791874165544,
+      "box_ap50": 0.4874264999456876,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 154.01887715955056,
+      "latency_ms": {
+        "pre": 0.28533233157359067,
+        "inf": 2.162057621558779,
+        "post": 0.3805157710419735,
+        "e2e": 2.827905724174343
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov5nu",
+      "variant": "yolov5nu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.3371070543950444,
+      "box_ap50": 0.4874085194683542,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 136.85368944362293,
+      "latency_ms": {
+        "pre": 0.287012039788533,
+        "inf": 2.8059223978052614,
+        "post": 0.40683918083377646,
+        "e2e": 3.499773618427571
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov5nu",
+      "variant": "yolov5nu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.334148294813471,
+      "box_ap50": 0.48255186602594147,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 129.32657968608612,
+      "latency_ms": {
+        "pre": 0.8951354753616734,
+        "inf": 4.096889843290636,
+        "post": 1.2992389179381638,
+        "e2e": 6.291264236590473
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov5nu",
+      "variant": "yolov5nu",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.3341482983524296,
+      "box_ap50": 0.4825518697190091,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 83.82479164653492,
+      "latency_ms": {
+        "pre": 0.38878486701250053,
+        "inf": 4.092652586360319,
+        "post": 6.114982500480396,
+        "e2e": 10.596419953853216
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov5su",
+      "variant": "yolov5su",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.421841591092768,
+      "box_ap50": 0.5863357119648815,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 128.85333061214615,
+      "latency_ms": {
+        "pre": 0.29196627767523753,
+        "inf": 4.097097778864555,
+        "post": 0.3756938574486412,
+        "e2e": 4.764757913988434
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolov5su",
+      "variant": "yolov5su",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.42191266489402335,
+      "box_ap50": 0.5863984364899613,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 109.8708626609869,
+      "latency_ms": {
+        "pre": 0.2888896832067985,
+        "inf": 5.106362893775804,
+        "post": 0.40531513805908614,
+        "e2e": 5.800567715041689
+      },
+      "n_images": 4998
+    },
+    {
+      "model": "yolov5su",
+      "variant": "yolov5su",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.42025511063556636,
+      "box_ap50": 0.5833419575729655,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 102.63969163171554,
+      "latency_ms": {
+        "pre": 0.9133770493897907,
+        "inf": 6.348436309751978,
+        "post": 1.025669808664435,
+        "e2e": 8.287483167806204
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov5su",
+      "variant": "yolov5su",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.42025511081716294,
+      "box_ap50": 0.5833419585486964,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 82.01616577327287,
+      "latency_ms": {
+        "pre": 0.39253906089751384,
+        "inf": 6.215342857137532,
+        "post": 4.243677711709037,
+        "e2e": 10.851559629744083
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8m-seg",
+      "variant": "yolov8m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.48945706140818285,
+      "box_ap50": 0.6523456441514071,
+      "mask_ap": 0.40270354247359724,
+      "mask_ap50": 0.6248972987218354,
+      "fps_wall": 21.913462414316673,
+      "latency_ms": {
+        "pre": 0.3153388546110364,
+        "inf": 15.140078289809754,
+        "post": 7.175238907028688,
+        "e2e": 22.630656051449478
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8m-seg",
+      "variant": "yolov8m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.489567455329345,
+      "box_ap50": 0.6524420115130918,
+      "mask_ap": 0.4027962885304696,
+      "mask_ap50": 0.6249884447335893,
+      "fps_wall": 20.639704323369063,
+      "latency_ms": {
+        "pre": 0.31483730078907685,
+        "inf": 17.636048519966426,
+        "post": 7.242447733136942,
+        "e2e": 25.193333553892444
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8m-seg",
+      "variant": "yolov8m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.488094342675644,
+      "box_ap50": 0.6509934830984825,
+      "mask_ap": 0.39803270210784886,
+      "mask_ap50": 0.6225284951698723,
+      "fps_wall": 17.25333427386702,
+      "latency_ms": {
+        "pre": 1.2265993748780426,
+        "inf": 19.23599514987607,
+        "post": 36.06456128676952,
+        "e2e": 56.52715581152363
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8m-seg",
+      "variant": "yolov8m-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.4880943427339705,
+      "box_ap50": 0.6509934830984825,
+      "mask_ap": 0.3980327199033441,
+      "mask_ap50": 0.6225284951698723,
+      "fps_wall": 9.59268220120858,
+      "latency_ms": {
+        "pre": 0.6643164480806376,
+        "inf": 20.417434240429085,
+        "post": 81.71413494671701,
+        "e2e": 102.79588563522672
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8m",
+      "variant": "yolov8m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.49434459081112686,
+      "box_ap50": 0.6596325828062873,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 65.67016135012696,
+      "latency_ms": {
+        "pre": 0.287024078721879,
+        "inf": 11.727664486583672,
+        "post": 0.35948037861671767,
+        "e2e": 12.37416894392227
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8m",
+      "variant": "yolov8m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.49431932262344674,
+      "box_ap50": 0.659618598525769,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 55.67226262055854,
+      "latency_ms": {
+        "pre": 0.2880322259210516,
+        "inf": 14.13610947834386,
+        "post": 0.42037276332266627,
+        "e2e": 14.844514467587578
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8m",
+      "variant": "yolov8m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.4927114240724244,
+      "box_ap50": 0.6568597160580424,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 52.44294891540036,
+      "latency_ms": {
+        "pre": 1.0255116119866936,
+        "inf": 15.511042025772399,
+        "post": 1.0895166878910416,
+        "e2e": 17.626070325650133
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8m",
+      "variant": "yolov8m",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.4927114241174368,
+      "box_ap50": 0.6568597160580424,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 48.27639129738324,
+      "latency_ms": {
+        "pre": 0.4936875158492498,
+        "inf": 15.319762228889937,
+        "post": 3.539406983063951,
+        "e2e": 19.35285672780314
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.3604222091204343,
+      "box_ap50": 0.5118424253392779,
+      "mask_ap": 0.3020064792204034,
+      "mask_ap50": 0.484432772261358,
+      "fps_wall": 21.15133374968508,
+      "latency_ms": {
+        "pre": 0.3151466417184565,
+        "inf": 2.741445098989061,
+        "post": 10.486066633887821,
+        "e2e": 13.542658374595339
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.36034846118474295,
+      "box_ap50": 0.5118027940782892,
+      "mask_ap": 0.3020037008297408,
+      "mask_ap50": 0.484402393900847,
+      "fps_wall": 20.480384063010334,
+      "latency_ms": {
+        "pre": 0.31339576037717054,
+        "inf": 3.9485490319348178,
+        "post": 10.553989138820908,
+        "e2e": 14.815933931132896
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.3586595426922613,
+      "box_ap50": 0.5085157294958369,
+      "mask_ap": 0.2983512850644416,
+      "mask_ap50": 0.4810045271194699,
+      "fps_wall": 17.396661086184388,
+      "latency_ms": {
+        "pre": 1.1005314805965005,
+        "inf": 5.494024910632578,
+        "post": 49.473322245057254,
+        "e2e": 56.06787863628633
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.3586698740264653,
+      "box_ap50": 0.5085157304741708,
+      "mask_ap": 0.2983512852348544,
+      "mask_ap50": 0.48100452758133966,
+      "fps_wall": 7.844673871591245,
+      "latency_ms": {
+        "pre": 0.6368097516089121,
+        "inf": 5.835324233650358,
+        "post": 119.52907102841546,
+        "e2e": 126.00120501367473
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.3670494390937346,
+      "box_ap50": 0.5165849508216601,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 157.71312827407914,
+      "latency_ms": {
+        "pre": 0.27523995520605243,
+        "inf": 2.2266006825258957,
+        "post": 0.3852450031321496,
+        "e2e": 2.8870856408640977
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.3670962634252435,
+      "box_ap50": 0.5166155921117259,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 132.26248429015774,
+      "latency_ms": {
+        "pre": 0.28490775980753824,
+        "inf": 3.2146180535026363,
+        "post": 0.42380320199590643,
+        "e2e": 3.923329015306081
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.3650699199758877,
+      "box_ap50": 0.5128655341856425,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 122.72641164207754,
+      "latency_ms": {
+        "pre": 0.9293010774019285,
+        "inf": 4.538467305780243,
+        "post": 1.2392480157302965,
+        "e2e": 6.707016398912468
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.36506989113745947,
+      "box_ap50": 0.5128654689537242,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 84.10868697650707,
+      "latency_ms": {
+        "pre": 0.4066190902881394,
+        "inf": 4.587929199984572,
+        "post": 5.553710405467489,
+        "e2e": 10.5482586957402
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8s-seg",
+      "variant": "yolov8s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.43919530115862715,
+      "box_ap50": 0.6001725364223189,
+      "mask_ap": 0.36342690406540984,
+      "mask_ap50": 0.5716055455307846,
+      "fps_wall": 24.564696749604934,
+      "latency_ms": {
+        "pre": 0.32069148262089586,
+        "inf": 5.763233187395963,
+        "post": 8.29550386503106,
+        "e2e": 14.37942853504792
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8s-seg",
+      "variant": "yolov8s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.439212594767114,
+      "box_ap50": 0.6001457223035835,
+      "mask_ap": 0.3634720050868241,
+      "mask_ap50": 0.5715692315546612,
+      "fps_wall": 23.440962237153627,
+      "latency_ms": {
+        "pre": 0.31534122346201915,
+        "inf": 7.707827805812121,
+        "post": 8.341094754479126,
+        "e2e": 16.364263783753266
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8s-seg",
+      "variant": "yolov8s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.43829055838864867,
+      "box_ap50": 0.5980722714501723,
+      "mask_ap": 0.3598962492994284,
+      "mask_ap50": 0.5690244663061403,
+      "fps_wall": 19.05927865306492,
+      "latency_ms": {
+        "pre": 1.1492828641818624,
+        "inf": 9.269138445566405,
+        "post": 40.61615951319201,
+        "e2e": 51.03458082294028
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8s-seg",
+      "variant": "yolov8s-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.4382905578064116,
+      "box_ap50": 0.5980722705460076,
+      "mask_ap": 0.3598962489513914,
+      "mask_ap50": 0.5690244656053108,
+      "fps_wall": 9.475025842584035,
+      "latency_ms": {
+        "pre": 0.6403603861631674,
+        "inf": 9.82722200682396,
+        "post": 93.61283181127375,
+        "e2e": 104.08041420426089
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8s",
+      "variant": "yolov8s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "pytorch",
+      "box_ap": 0.4424995826750766,
+      "box_ap50": 0.6065010979706127,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 121.19751948203887,
+      "latency_ms": {
+        "pre": 0.2805684804712655,
+        "inf": 4.468785428631236,
+        "post": 0.39052847562415993,
+        "e2e": 5.139882384726661
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolov8s",
+      "variant": "yolov8s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.44247569027279543,
+      "box_ap50": 0.6064976218002287,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 98.53613803080249,
+      "latency_ms": {
+        "pre": 0.2856971867324319,
+        "inf": 6.193962402411853,
+        "post": 0.40871522476663813,
+        "e2e": 6.888374813910923
+      },
+      "n_images": 4999
+    },
+    {
+      "model": "yolov8s",
+      "variant": "yolov8s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.4391855775012681,
+      "box_ap50": 0.6032271104291895,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 90.59061427715625,
+      "latency_ms": {
+        "pre": 0.9818549172354084,
+        "inf": 7.511008373649648,
+        "post": 1.0778618008592349,
+        "e2e": 9.570725091744292
+      },
+      "n_images": 4997
+    },
+    {
+      "model": "yolov8s",
+      "variant": "yolov8s",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.4391855775012681,
+      "box_ap50": 0.6032271104291895,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 74.78666058064043,
+      "latency_ms": {
+        "pre": 0.429919417130154,
+        "inf": 7.338531787365543,
+        "post": 4.253605725584523,
+        "e2e": 12.02205693008022
+      },
+      "n_images": 4997
+    }
+  ]
+}
