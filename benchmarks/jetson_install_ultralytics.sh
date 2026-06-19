@@ -52,6 +52,11 @@ $PY -m pip install "$ORT_WHL" || fail "onnxruntime-gpu"
 echo "=== [6/7] yolo-validator (+ benchmark deps) into same env ==="
 # --no-deps so we keep the Jetson torch/onnxruntime; add only what yv needs.
 $PY -m pip install pycocotools || fail "pycocotools"
+# pycuda — required by yolo-validator's TensorRT backend (yv-tensorrt). The
+# JetPack image does not ship it in system site-packages, so build it from
+# source against the CUDA toolkit (nvcc must be on PATH; no aarch64 wheel).
+export PATH=/usr/local/cuda/bin:$PATH
+$PY -m pip install pycuda || fail "pycuda"
 $PY -m pip install --no-deps -e . || fail "yolo-validator editable"
 
 echo "=== [7/7] SMOKE TEST ==="
@@ -63,6 +68,8 @@ print("device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else
 import torchvision; print("torchvision:", torchvision.__version__)
 import ultralytics; print("ultralytics:", ultralytics.__version__)
 import tensorrt; print("tensorrt:", tensorrt.__version__)
+import pycuda.autoinit, pycuda.driver as drv
+print("pycuda:", drv.get_version())
 try:
     import onnxruntime as ort
     print("onnxruntime:", ort.__version__, "providers:", ort.get_available_providers())
