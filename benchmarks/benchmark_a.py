@@ -323,6 +323,7 @@ def run_benchmark_a(
     warmup: int = 3,
     device: str = "cpu",
     half: bool = False,
+    skip_ult_pt: bool = False,
     edgefirst_session_id: str | None = None,
 ) -> dict:
     """Run the benchmark configs for one model variant.
@@ -393,24 +394,27 @@ def run_benchmark_a(
     if device == "tensorrt":
         engine_path = export_to_engine(str(pt_path), str(models_dir), export_mode, half=half)
 
-        # ult-pt (CUDA) — PyTorch FP32 gold reference, on-device
-        print(f"\n[{label}] running ult-pt (cuda) ...")
-        try:
-            ult_model = _YOLO(str(pt_path))
-            _set_end2end(ult_model, export_mode)
-            ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
-                                     pre_val_model=ult_model, device=0)
-            results_per_config["ult-pt"] = {
-                **canonical_eval(run_gt_json, ult_pt["predictions"], iou_types),
-                "timing": rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"]),
-                "n_images": ult_pt["n_images"],
-                "wall_s": ult_pt["wall_s"],
-                "speed": ult_pt["speed"],
-            }
-            print(f"  box AP={results_per_config['ult-pt'].get('bbox', {}).get('AP', 'N/A'):.4f}  wall={ult_pt['wall_s']:.1f}s")
-        except Exception as e:
-            print(f"  [FAILED] ult-pt: {e}")
-            results_per_config["ult-pt"] = {"error": str(e)}
+        # ult-pt (CUDA) — PyTorch FP32 gold reference, on-device. Skippable:
+        # where the TensorRT engine is the deployment path (Orin), the PyTorch
+        # lane is redundant (pt ≡ engine ≤ 0.0001, proven) and very slow.
+        if not skip_ult_pt:
+            print(f"\n[{label}] running ult-pt (cuda) ...")
+            try:
+                ult_model = _YOLO(str(pt_path))
+                _set_end2end(ult_model, export_mode)
+                ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
+                                         pre_val_model=ult_model, device=0)
+                results_per_config["ult-pt"] = {
+                    **canonical_eval(run_gt_json, ult_pt["predictions"], iou_types),
+                    "timing": rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"]),
+                    "n_images": ult_pt["n_images"],
+                    "wall_s": ult_pt["wall_s"],
+                    "speed": ult_pt["speed"],
+                }
+                print(f"  box AP={results_per_config['ult-pt'].get('bbox', {}).get('AP', 'N/A'):.4f}  wall={ult_pt['wall_s']:.1f}s")
+            except Exception as e:
+                print(f"  [FAILED] ult-pt: {e}")
+                results_per_config["ult-pt"] = {"error": str(e)}
 
         # ult-engine (TensorRT) — Ultralytics val on the .engine
         print(f"\n[{label}] running ult-engine (tensorrt) ...")
@@ -459,26 +463,27 @@ def run_benchmark_a(
         # ---- Export to ONNX ----
         onnx_path = export_to_onnx(str(pt_path), str(models_dir), export_mode)
 
-        # ---- Config 1: ult-pt ----
-        print(f"\n[{label}] running ult-pt ...")
-        try:
-            ult_model = _YOLO(str(pt_path))
-            _set_end2end(ult_model, export_mode)
-            ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
-                                      pre_val_model=ult_model, device=_ult_device)
-            ult_pt_metrics = canonical_eval(run_gt_json, ult_pt["predictions"], iou_types)
-            ult_pt_timing = rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"])
-            results_per_config["ult-pt"] = {
-                **ult_pt_metrics,
-                "timing": ult_pt_timing,
-                "n_images": ult_pt["n_images"],
-                "wall_s": ult_pt["wall_s"],
-                "speed": ult_pt["speed"],
-            }
-            print(f"  box AP={ult_pt_metrics.get('bbox', {}).get('AP', 'N/A'):.4f}  wall={ult_pt['wall_s']:.1f}s")
-        except Exception as e:
-            print(f"  [FAILED] ult-pt: {e}")
-            results_per_config["ult-pt"] = {"error": str(e)}
+        # ---- Config 1: ult-pt (skippable via --skip-ult-pt) ----
+        if not skip_ult_pt:
+            print(f"\n[{label}] running ult-pt ...")
+            try:
+                ult_model = _YOLO(str(pt_path))
+                _set_end2end(ult_model, export_mode)
+                ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
+                                          pre_val_model=ult_model, device=_ult_device)
+                ult_pt_metrics = canonical_eval(run_gt_json, ult_pt["predictions"], iou_types)
+                ult_pt_timing = rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"])
+                results_per_config["ult-pt"] = {
+                    **ult_pt_metrics,
+                    "timing": ult_pt_timing,
+                    "n_images": ult_pt["n_images"],
+                    "wall_s": ult_pt["wall_s"],
+                    "speed": ult_pt["speed"],
+                }
+                print(f"  box AP={ult_pt_metrics.get('bbox', {}).get('AP', 'N/A'):.4f}  wall={ult_pt['wall_s']:.1f}s")
+            except Exception as e:
+                print(f"  [FAILED] ult-pt: {e}")
+                results_per_config["ult-pt"] = {"error": str(e)}
 
         # ---- Config 2: ult-onnx ----
         print(f"\n[{label}] running ult-onnx ...")
@@ -643,6 +648,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "tensorrt: ult-pt(cuda)/ult-engine/yv-tensorrt on a TRT engine.")
     p.add_argument("--half", action="store_true",
                    help="Build FP16 TensorRT engines (device=tensorrt only).")
+    p.add_argument("--skip-ult-pt", action="store_true",
+                   help="Skip the Ultralytics PyTorch reference lane. Use where "
+                        "the TensorRT/ONNX engine is the deployment path (e.g. "
+                        "Orin): pt is redundant (pt ≡ engine) and very slow.")
     p.add_argument("--only-export-mode", choices=["classic", "nmsfree"], default=None,
                    help="Run only variants with this export mode (used by the "
                         "per-variant subprocess isolation on device=tensorrt).")
@@ -687,6 +696,8 @@ def _spawn_variant_worker(model_name: str, export_mode: str, args) -> int:
         cmd += ["--max-images", str(args.max_images)]
     if args.half:
         cmd.append("--half")
+    if args.skip_ult_pt:
+        cmd.append("--skip-ult-pt")
     if args.edgefirst_session:
         cmd += ["--edgefirst-session", args.edgefirst_session]
     print(f"[isolate] spawning fresh process: {model_name} ({export_mode})")
@@ -781,6 +792,7 @@ def main() -> None:
                     warmup=args.warmup,
                     device=args.device,
                     half=args.half,
+                    skip_ult_pt=args.skip_ult_pt,
                     edgefirst_session_id=args.edgefirst_session,
                 )
             except Exception as e:
