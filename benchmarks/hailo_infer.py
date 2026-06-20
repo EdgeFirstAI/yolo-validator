@@ -1,10 +1,16 @@
 """On-device HailoRT inference + COCO scoring for a compiled .hef (rpi5-hailo8l).
 
 Runs on the Raspberry Pi 5 AI Kit (HailoRT installed). For each COCO val2017
-image it letterboxes to the model input, runs the INT8 .hef (NMS is baked in by
-the Dataflow Compiler), maps the per-class detections back to original-image
-coordinates, and scores them with the same crowd-as-normal pycocotools path the
-rest of the benchmark uses. Detection only.
+image it letterboxes to the model input, runs the INT8 .hef, maps detections
+back to original-image coordinates, and scores them with the same
+crowd-as-normal pycocotools path the rest of the benchmark uses.
+
+Three head types are auto-dispatched by output-vstream count (override with
+``--head``): baked HAILO_NMS detect (decode is on-chip), raw NMS-free detect
+(yolo26 — anchor-free distance box + class logits decoded here), and raw
+yolov8 instance segmentation (DFL box + class + mask coeffs + prototype,
+decoded and masked here). See ``_decode_nms`` / ``_decode_nmsfree`` /
+``_decode_seg``.
 
 This is yolo-validator filling the on-target gap: the Ultralytics/Vendor Hailo
 workflow produces the .hef, but no consistent COCO mAP — this does. Output is a
@@ -215,6 +221,11 @@ def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100, top_k=1000):
             proto = a                   # (mh, mw, nm) prototype masks
         else:
             per.setdefault(h, {})[c] = a
+    if proto is None:
+        raise ValueError(
+            "segment head selected but no prototype tensor (expected a "
+            "(>=160, >=160, 32) output) was found among the HEF outputs — "
+            "this HEF is not a yolov8-seg model. Pass the correct --head.")
     boxes, clss, coeffs = [], [], []
     for h in sorted(per, reverse=True):
         g, stride = per[h], imgsz // h
@@ -261,6 +272,16 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
                                 HailoStreamInterface, InferVStreams,
                                 InputVStreamParams, OutputVStreamParams, VDevice)
 
+    # The usage string advertises ``~/...`` paths; Path() does not expand ``~``,
+    # so do it here (and fail fast below) rather than silently scoring 0 images.
+    hef_path = Path(hef_path).expanduser()
+    coco_val = Path(coco_val).expanduser()
+    gt = Path(gt).expanduser()
+    if not hef_path.exists():
+        raise SystemExit(f"HEF not found: {hef_path}")
+    if not gt.exists():
+        raise SystemExit(f"COCO ground-truth not found: {gt}")
+
     hef = HEF(str(hef_path))
     in_info = hef.get_input_vstream_infos()[0]
     in_name = in_info.name
@@ -273,6 +294,8 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
         head = "nms" if n_out == 1 else "nmsfree" if n_out == 6 else "segment"
 
     images = sorted(Path(coco_val).glob("*.jpg"))
+    if not images:
+        raise SystemExit(f"no *.jpg images found under {coco_val} — check --coco-val")
     if limit:
         images = images[:limit]
     print(f"[hailo_infer] {model}: {len(images)} images, hef={Path(hef_path).name}, "

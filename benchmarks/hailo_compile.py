@@ -64,16 +64,20 @@ def export_onnx(model: str, out_dir: Path, venv_python: Path,
         return onnx_path
     if not venv_python.exists():
         raise SystemExit(f"benchmark venv python not found: {venv_python}")
+    # Keep the -c snippet constant and pass model/dest/imgsz/opset via argv, so
+    # a model string with quotes/newlines can't inject code into the export venv.
     code = (
-        "import os, shutil; os.environ['YOLO_AUTOINSTALL']='False';"
+        "import os, sys, shutil; os.environ['YOLO_AUTOINSTALL']='False';"
         "from pathlib import Path; from ultralytics import YOLO;"
-        f"p=YOLO('{model}.pt').export(format='onnx', imgsz={imgsz}, opset={opset});"
-        f"d=Path(r'{onnx_path}'); s=Path(p);"
+        "model, dest, imgsz, opset = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]);"
+        "p=YOLO(model + '.pt').export(format='onnx', imgsz=imgsz, opset=opset);"
+        "d=Path(dest); s=Path(p);"
         "shutil.copyfile(s, d) if s.resolve()!=d.resolve() else None;"
         "print('EXPORTED', d)"
     )
     print(f"[export] {model} -> {onnx_path.name} (via {venv_python})")
-    subprocess.run([str(venv_python), "-c", code], check=True, cwd=out_dir)
+    subprocess.run([str(venv_python), "-c", code, model, str(onnx_path),
+                    str(imgsz), str(opset)], check=True, cwd=out_dir)
     if not onnx_path.exists():
         raise SystemExit(f"export did not produce {onnx_path}")
     return onnx_path
@@ -259,6 +263,10 @@ def main():
     ap.add_argument("--iou-th", type=float, default=0.7)
     ap.add_argument("--max-per-class", type=int, default=100)
     a = ap.parse_args()
+    # Match benchmark_a.py: support ``~/...`` paths for data/output/venv.
+    a.coco_train = a.coco_train.expanduser()
+    a.out = a.out.expanduser()
+    a.venv_python = a.venv_python.expanduser()
 
     manifest = []
     for model in a.models:

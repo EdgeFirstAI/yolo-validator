@@ -37,7 +37,11 @@ echo "=== DFC wheel: $WHL ==="
 echo "=== [1/5] ensure uv (user-local, no sudo) ==="
 export PATH="$HOME/.local/bin:$PATH"
 if ! command -v uv >/dev/null 2>&1; then
-    curl -LsSf https://astral.sh/uv/install.sh | sh || fail "uv install"
+    # Download then run as separate steps so a failed download is not masked by
+    # the pipe's exit status (and the installer is auditable before it runs).
+    curl -LsSf https://astral.sh/uv/install.sh -o uv-install.sh || fail "uv download"
+    sh uv-install.sh || fail "uv install"
+    rm -f uv-install.sh
 fi
 uv --version || fail "uv not on PATH"
 
