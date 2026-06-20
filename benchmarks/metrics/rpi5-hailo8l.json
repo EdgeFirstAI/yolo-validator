@@ -15,22 +15,22 @@
       "precision": "INT8",
       "quant": {
         "method": "hailo-dfc",
-        "calib": "train2017/1024"
+        "calib": null
       },
       "lane": "baseline",
       "validator": "yolo-validator",
-      "workflow": "vendor:hailo-dfc",
+      "workflow": "vendor:hailo-model-zoo",
       "engine": "hailo",
-      "box_ap": 0.37514468935028467,
-      "box_ap50": 0.5282219781113452,
+      "box_ap": 0.37577109889981414,
+      "box_ap50": 0.5297858280816368,
       "mask_ap": null,
       "mask_ap50": null,
-      "fps_wall": 30.52218637174377,
+      "fps_wall": 36.66873998328435,
       "latency_ms": {
-        "pre": 7.65710485019954,
-        "inf": 24.75783353076549,
-        "post": 0.3117565328837372,
-        "e2e": 32.72669491384877
+        "pre": 7.4932751206331885,
+        "inf": 19.396589686814696,
+        "post": 0.34442464164458214,
+        "e2e": 27.234289449092465
       },
       "n_images": 5000
     },
@@ -61,28 +61,54 @@
       "n_images": 5000
     },
     {
+      "model": "yolov5s",
+      "variant": "yolov5s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.3380210615865757,
+      "box_ap50": 0.5355282671256675,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 25.920245125330776,
+      "latency_ms": {
+        "pre": 7.471921689261217,
+        "inf": 30.02358809809666,
+        "post": 1.0477590498281644,
+        "e2e": 38.54326883718604
+      },
+      "n_images": 5000
+    },
+    {
       "model": "yolov8n",
       "variant": "yolov8n",
       "task": "detect",
       "precision": "INT8",
       "quant": {
         "method": "hailo-dfc",
-        "calib": "train2017/1024"
+        "calib": null
       },
       "lane": "baseline",
       "validator": "yolo-validator",
-      "workflow": "vendor:hailo-dfc",
+      "workflow": "vendor:hailo-model-zoo",
       "engine": "hailo",
-      "box_ap": 0.36060145167533364,
-      "box_ap50": 0.5100168318209176,
+      "box_ap": 0.36033609781907544,
+      "box_ap50": 0.5090824421187833,
       "mask_ap": null,
       "mask_ap50": null,
-      "fps_wall": 35.56148142548863,
+      "fps_wall": 42.00821703284874,
       "latency_ms": {
-        "pre": 7.584372460434679,
-        "inf": 20.14112217167858,
-        "post": 0.35721227042376996,
-        "e2e": 28.08270690253703
+        "pre": 7.474630079173949,
+        "inf": 15.922991571039892,
+        "post": 0.3676588918780908,
+        "e2e": 23.765280542091933
       },
       "n_images": 5000
     }

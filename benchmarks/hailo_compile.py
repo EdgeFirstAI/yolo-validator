@@ -7,6 +7,11 @@ it turns ``yolo*.pt`` into a quantized INT8 ``yolo*.hef`` for the
 ``rpi5-hailo8l`` platform. On-device HailoRT inference + COCO scoring is a
 separate step on the Pi. Detection only; NMS is baked into the ``.hef``.
 
+GAP-FILL ROLE: the rpi5-hailo8l baseline primarily uses the Hailo Model Zoo's
+PRECOMPILED HEFs (``hailo_fetch_zoo.sh`` — the vendor's published artifacts).
+This script is for models the zoo does not publish (e.g. ``yolov5nu``, the
+Ultralytics anchor-free v5 retrain), recorded as ``vendor:hailo-dfc``.
+
 Pipeline per model (mirrors the Ultralytics doc, generated programmatically so
 it generalizes across the anchor-free nano set yolov8n/yolo11n/yolov5nu)::
 
