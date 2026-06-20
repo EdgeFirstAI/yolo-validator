@@ -35,6 +35,84 @@
       "n_images": 5000
     },
     {
+      "model": "yolo26m",
+      "variant": "yolo26m",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.5004771873630667,
+      "box_ap50": 0.6730134257372903,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 10.116117043941564,
+      "latency_ms": {
+        "pre": 7.570005251048133,
+        "inf": 81.9957410916104,
+        "post": 9.245270444161724,
+        "e2e": 98.81101678682026
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.37798266613898923,
+      "box_ap50": 0.5342880416549781,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 26.434689022974986,
+      "latency_ms": {
+        "pre": 7.615050975442864,
+        "inf": 20.745782548806165,
+        "post": 9.393158857652452,
+        "e2e": 37.75399238190148
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.45016581265258276,
+      "box_ap50": 0.6201656432479546,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 18.66082213418931,
+      "latency_ms": {
+        "pre": 7.645762559189461,
+        "inf": 35.52971791996388,
+        "post": 10.367591040988918,
+        "e2e": 53.543071520142256
+      },
+      "n_images": 5000
+    },
+    {
       "model": "yolov5nu",
       "variant": "yolov5nu",
       "task": "detect",

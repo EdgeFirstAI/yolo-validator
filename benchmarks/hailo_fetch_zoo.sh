@@ -21,10 +21,12 @@ OUT=${1:-"$(dirname "$0")/results/hailo_zoo"}
 BASE=https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.18.0/hailo8l
 mkdir -p "$OUT"
 
-# Vendor precompiled detection models used as the rpi5-hailo8l baseline.
-# (yolo26n is published but emits raw NMS-free tensors needing a custom host
-#  decoder — not wired up here.)
-MODELS=${MODELS:-"yolov8n yolov11n yolov5s"}
+# Vendor precompiled models used as the rpi5-hailo8l baseline. hailo_infer.py
+# auto-dispatches by output head: baked-NMS detect (yolov8n/yolov11n/yolov5s),
+# NMS-free detect (yolo26n/s/m — raw 4-ch box + cls, host-decoded), and instance
+# segmentation (yolov8{n,s,m}_seg — raw DFL box + cls + mask coeffs + proto,
+# host-decoded). yolov5*_seg is anchor-based (different head) — not used here.
+MODELS=${MODELS:-"yolov8n yolov11n yolov5s yolo26n yolo26s yolo26m yolov8n_seg yolov8s_seg yolov8m_seg"}
 
 for m in $MODELS; do
     dst="$OUT/$m.hef"
@@ -36,4 +38,6 @@ for m in $MODELS; do
     wget -q "$BASE/$m.hef" -O "$dst" || { echo "FAILED: $m"; rm -f "$dst"; exit 1; }
     echo "  -> $dst ($(stat -c%s "$dst") bytes)"
 done
-echo "done. Published Hailo-8L INT8 mAP (for cross-check): yolov8n 36.4 | yolov11n 37.8 | yolov5s 34.1"
+echo "done. Published Hailo-8L INT8 mAP (cross-check): yolov8n 36.4 | yolov11n 37.8 |"
+echo "  yolov5s 34.1 | yolo26n 37.4 | yolo26s 44.8 | yolo26m 50.0 |"
+echo "  yolov8n_seg 29.6 mask | yolov8s_seg 36.3 mask | yolov8m_seg 40.2 mask"
