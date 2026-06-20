@@ -21,7 +21,7 @@ ORT_WHL=$A/onnxruntime_gpu-1.23.0-cp310-cp310-linux_aarch64.whl
 CUDSS_DEB=cudss-local-tegra-repo-ubuntu2204-0.7.1_0.7.1-1_arm64.deb
 CUDSS_URL=https://developer.download.nvidia.com/compute/cudss/0.7.1/local_installers/$CUDSS_DEB
 
-echo "=== [1/7] fresh venv (--system-site-packages for system TensorRT 10.3 + pycuda) ==="
+echo "=== [1/7] fresh venv (--system-site-packages for system TensorRT 10.3) ==="
 rm -rf venv-ult
 python3 -m venv --system-site-packages venv-ult || fail "venv create"
 PY=venv-ult/bin/python
@@ -52,6 +52,15 @@ $PY -m pip install "$ORT_WHL" || fail "onnxruntime-gpu"
 echo "=== [6/7] yolo-validator (+ benchmark deps) into same env ==="
 # --no-deps so we keep the Jetson torch/onnxruntime; add only what yv needs.
 $PY -m pip install pycocotools || fail "pycocotools"
+# pycuda — required by yolo-validator's TensorRT backend (yv-tensorrt). The
+# JetPack image does not ship it in system site-packages, so build it from
+# source against the CUDA toolkit (nvcc must be on PATH; no aarch64 wheel).
+export PATH=/usr/local/cuda/bin:$PATH
+# Fail fast with a clear message if the CUDA toolkit is missing, instead of a
+# long opaque pycuda build error.
+command -v nvcc >/dev/null 2>&1 \
+    || fail "nvcc not on PATH — pycuda builds from source and needs the CUDA toolkit (looked in /usr/local/cuda/bin); install the JetPack CUDA dev tools"
+$PY -m pip install pycuda || fail "pycuda"
 $PY -m pip install --no-deps -e . || fail "yolo-validator editable"
 
 echo "=== [7/7] SMOKE TEST ==="
@@ -63,6 +72,9 @@ print("device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else
 import torchvision; print("torchvision:", torchvision.__version__)
 import ultralytics; print("ultralytics:", ultralytics.__version__)
 import tensorrt; print("tensorrt:", tensorrt.__version__)
+import pycuda, pycuda.autoinit, pycuda.driver as drv
+print("pycuda:", pycuda.VERSION_TEXT)
+print("cuda driver:", drv.get_version())
 try:
     import onnxruntime as ort
     print("onnxruntime:", ort.__version__, "providers:", ort.get_available_providers())
