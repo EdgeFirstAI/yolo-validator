@@ -89,7 +89,64 @@ def _decode_nms(raw, imgsz, scale, pad_x, pad_y, w0, h0, class_map, image_id,
     return recs
 
 
-def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th):
+def _sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-x))
+
+
+def _decode_nmsfree(results, imgsz, scale, pad_x, pad_y, w0, h0, class_map,
+                    image_id, score_th, max_det=300):
+    """Decode a raw NMS-free head (yolo26) to COCO dicts.
+
+    The HEF emits, per stride, a 4-channel box branch (anchor-free *distances*
+    l,t,r,b in grid units) and an nc-channel class-logit branch — no DFL, no
+    on-chip NMS. Decode = cell-center (+0.5) anchor · stride, sigmoid on class,
+    multi-label top-k, and (because the one-to-one head suppresses duplicates)
+    NO NMS — matching how Ultralytics validates yolov10/yolo26.
+    """
+    grids = {}
+    for v in results.values():
+        a = np.asarray(v)[0]  # (H, W, C)
+        h, _, c = a.shape
+        grids.setdefault(h, {})[("box" if c == 4 else "cls")] = a
+    boxes_all, scores_all = [], []
+    for h, g in grids.items():
+        stride = imgsz // h
+        box = g["box"].reshape(-1, 4)
+        cls = _sigmoid(g["cls"].reshape(-1, g["cls"].shape[-1]))
+        gx, gy = np.meshgrid(np.arange(h) + 0.5, np.arange(h) + 0.5)
+        ax, ay = gx.reshape(-1), gy.reshape(-1)
+        l, t, r, b = box[:, 0], box[:, 1], box[:, 2], box[:, 3]
+        boxes_all.append(np.stack([(ax - l) * stride, (ay - t) * stride,
+                                   (ax + r) * stride, (ay + b) * stride], 1))
+        scores_all.append(cls)
+    boxes = np.concatenate(boxes_all, 0)        # (8400, 4) xyxy, input space
+    scores = np.concatenate(scores_all, 0)      # (8400, nc)
+    nc = scores.shape[1]
+    flat = scores.reshape(-1)
+    keep = np.nonzero(flat > score_th)[0]
+    if keep.size == 0:
+        return []
+    if keep.size > max_det:
+        keep = keep[np.argpartition(flat[keep], -max_det)[-max_det:]]
+    anc, cls_idx, sc = keep // nc, keep % nc, flat[keep]
+    recs = []
+    for k in range(keep.size):
+        x1, y1, x2, y2 = boxes[anc[k]]
+        ox1, oy1 = (x1 - pad_x) / scale, (y1 - pad_y) / scale
+        ox2, oy2 = (x2 - pad_x) / scale, (y2 - pad_y) / scale
+        ox1, ox2 = max(0.0, min(ox1, w0)), max(0.0, min(ox2, w0))
+        oy1, oy2 = max(0.0, min(oy1, h0)), max(0.0, min(oy2, h0))
+        if ox2 - ox1 <= 0 or oy2 - oy1 <= 0:
+            continue
+        recs.append({"image_id": int(image_id),
+                     "category_id": int(class_map[int(cls_idx[k])]),
+                     "bbox": [ox1, oy1, ox2 - ox1, oy2 - oy1],
+                     "score": float(sc[k])})
+    return recs
+
+
+def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
+        head="auto"):
     from hailo_platform import (HEF, ConfigureParams, FormatType,
                                 HailoStreamInterface, InferVStreams,
                                 InputVStreamParams, OutputVStreamParams, VDevice)
@@ -99,10 +156,17 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th):
     in_name = in_info.name
     class_map = coco80_to_coco91()
 
+    # Head type from the HEF's output vstreams: 1 = baked HAILO_NMS (yolov8/11/
+    # v5 detect); 6 = raw NMS-free (yolo26: 3×box + 3×cls); else raw seg.
+    n_out = len(hef.get_output_vstream_infos())
+    if head == "auto":
+        head = "nms" if n_out == 1 else "nmsfree" if n_out == 6 else "segment"
+
     images = sorted(Path(coco_val).glob("*.jpg"))
     if limit:
         images = images[:limit]
-    print(f"[hailo_infer] {model}: {len(images)} images, hef={Path(hef_path).name}")
+    print(f"[hailo_infer] {model}: {len(images)} images, hef={Path(hef_path).name}, "
+          f"head={head} ({n_out} outputs)")
 
     preds, t_pre, t_inf, t_post = [], 0.0, 0.0, 0.0
     params = VDevice.create_params()
@@ -135,9 +199,14 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th):
                     t1 = time.perf_counter()
                     results = pipeline.infer(inp)
                     t2 = time.perf_counter()
-                    raw = results[next(iter(results))][0]  # batch 0 -> per-class list
-                    preds.extend(_decode_nms(raw, imgsz, scale, pad_x, pad_y,
-                                             w0, h0, class_map, image_id, score_th))
+                    if head == "nms":
+                        raw = results[next(iter(results))][0]  # per-class list
+                        preds.extend(_decode_nms(raw, imgsz, scale, pad_x, pad_y,
+                                                 w0, h0, class_map, image_id, score_th))
+                    else:  # nmsfree (yolo26)
+                        preds.extend(_decode_nmsfree(results, imgsz, scale, pad_x,
+                                                     pad_y, w0, h0, class_map,
+                                                     image_id, score_th))
                     t3 = time.perf_counter()
                     t_pre += t1 - t0
                     t_inf += t2 - t1
@@ -192,8 +261,12 @@ def main():
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--limit", type=int, default=0, help="0 = all val2017")
     ap.add_argument("--score-th", type=float, default=0.001)
+    ap.add_argument("--head", default="auto",
+                    choices=["auto", "nms", "nmsfree", "segment"],
+                    help="output decoder; auto picks by output-vstream count")
     a = ap.parse_args()
-    run(a.hef, a.model, a.coco_val, a.gt, a.out, a.imgsz, a.limit, a.score_th)
+    run(a.hef, a.model, a.coco_val, a.gt, a.out, a.imgsz, a.limit, a.score_th,
+        head=a.head)
 
 
 if __name__ == "__main__":
