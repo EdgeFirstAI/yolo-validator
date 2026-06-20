@@ -82,20 +82,25 @@ def export_onnx(model: str, out_dir: Path, venv_python: Path,
         return onnx_path
     if not venv_python.exists():
         raise SystemExit(f"benchmark venv python not found: {venv_python}")
-    # Keep the -c snippet constant and pass model/dest/imgsz/opset via argv, so
-    # a model string with quotes/newlines can't inject code into the export venv.
+    # Keep the -c snippet a constant and pass parameters via the child's
+    # ENVIRONMENT, not the command line: no untrusted CLI value ever becomes a
+    # subprocess argument (model is allowlisted above; imgsz/opset are re-coerced
+    # to int here), so a crafted model/path string cannot reach the OS command.
     code = (
-        "import os, sys, shutil; os.environ['YOLO_AUTOINSTALL']='False';"
+        "import os, shutil;"
         "from pathlib import Path; from ultralytics import YOLO;"
-        "model, dest, imgsz, opset = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]);"
+        "model=os.environ['EXP_MODEL']; dest=os.environ['EXP_DEST'];"
+        "imgsz=int(os.environ['EXP_IMGSZ']); opset=int(os.environ['EXP_OPSET']);"
         "p=YOLO(model + '.pt').export(format='onnx', imgsz=imgsz, opset=opset);"
         "d=Path(dest); s=Path(p);"
         "shutil.copyfile(s, d) if s.resolve()!=d.resolve() else None;"
         "print('EXPORTED', d)"
     )
+    env = {**os.environ, "YOLO_AUTOINSTALL": "False",
+           "EXP_MODEL": model, "EXP_DEST": str(onnx_path),
+           "EXP_IMGSZ": str(int(imgsz)), "EXP_OPSET": str(int(opset))}
     print(f"[export] {model} -> {onnx_path.name} (via {venv_python})")
-    subprocess.run([str(venv_python), "-c", code, model, str(onnx_path),
-                    str(imgsz), str(opset)], check=True, cwd=out_dir)
+    subprocess.run([str(venv_python), "-c", code], check=True, cwd=out_dir, env=env)
     if not onnx_path.exists():
         raise SystemExit(f"export did not produce {onnx_path}")
     return onnx_path
