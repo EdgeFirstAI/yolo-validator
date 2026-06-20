@@ -70,8 +70,12 @@ def export_onnx(model: str, out_dir: Path, venv_python: Path,
 
     Idempotent: skips export if the ONNX already exists.
     """
-    # ``model`` is interpolated into a filename and passed to a subprocess.
+    # All three reach a subprocess command/cwd: validate the label against an
+    # allowlist and resolve the paths (normalizing away ``..``) right here so
+    # the sanitization is local to the call site, not just the CLI entrypoint.
     model = _safe_label(model)
+    out_dir = Path(out_dir).resolve()
+    venv_python = Path(venv_python).resolve()
     onnx_path = out_dir / f"{model}.onnx"
     if onnx_path.exists():
         print(f"[export] {onnx_path.name} exists — reuse")
