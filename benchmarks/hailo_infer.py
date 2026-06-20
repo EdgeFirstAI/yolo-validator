@@ -90,7 +90,8 @@ def _decode_nms(raw, imgsz, scale, pad_x, pad_y, w0, h0, class_map, image_id,
 
 
 def _sigmoid(x):
-    return 1.0 / (1.0 + np.exp(-x))
+    # clip avoids exp overflow on large-negative class logits (-> 0.0 anyway)
+    return 1.0 / (1.0 + np.exp(-np.clip(x, -30.0, 30.0)))
 
 
 def _decode_nmsfree(results, imgsz, scale, pad_x, pad_y, w0, h0, class_map,
