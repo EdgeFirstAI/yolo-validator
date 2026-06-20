@@ -46,6 +46,18 @@ import numpy as np
 # yolov8 / yolo11 / yolov5u.
 _HEAD_CONV = re.compile(r"^/model\.\d+/cv[23]\.\d+/cv[23]\.\d+\.2/Conv$")
 
+_LABEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+
+
+def _safe_label(name: str) -> str:
+    """Reject model labels with path/shell metacharacters before they reach a
+    subprocess or filename (defense-in-depth for untrusted CLI input — no
+    separators, no leading dash, no ``..`` traversal)."""
+    if not _LABEL_RE.fullmatch(name) or ".." in name:
+        raise SystemExit(f"invalid model label {name!r}: expected [A-Za-z0-9._-]")
+    return name
+
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUT = REPO_ROOT / "benchmarks" / "results" / "hailo"
 DEFAULT_VENV_PY = REPO_ROOT / "venv" / "bin" / "python"
@@ -58,6 +70,8 @@ def export_onnx(model: str, out_dir: Path, venv_python: Path,
 
     Idempotent: skips export if the ONNX already exists.
     """
+    # ``model`` is interpolated into a filename and passed to a subprocess.
+    model = _safe_label(model)
     onnx_path = out_dir / f"{model}.onnx"
     if onnx_path.exists():
         print(f"[export] {onnx_path.name} exists — reuse")
@@ -263,10 +277,12 @@ def main():
     ap.add_argument("--iou-th", type=float, default=0.7)
     ap.add_argument("--max-per-class", type=int, default=100)
     a = ap.parse_args()
-    # Match benchmark_a.py: support ``~/...`` paths for data/output/venv.
-    a.coco_train = a.coco_train.expanduser()
-    a.out = a.out.expanduser()
-    a.venv_python = a.venv_python.expanduser()
+    # Match benchmark_a.py: support ``~/...`` paths for data/output/venv;
+    # resolve() also normalizes away any ``..`` traversal before filesystem use.
+    a.coco_train = a.coco_train.expanduser().resolve()
+    a.out = a.out.expanduser().resolve()
+    a.venv_python = a.venv_python.expanduser().resolve()
+    a.models = [_safe_label(m) for m in a.models]
 
     manifest = []
     for model in a.models:

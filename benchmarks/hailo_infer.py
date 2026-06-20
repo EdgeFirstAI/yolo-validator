@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import re
 import time
 from pathlib import Path
 
@@ -37,6 +38,17 @@ from PIL import Image
 from benchmarks.canonical_eval import canonical_eval
 from yolo_validator.coco_output import coco80_to_coco91, detections_to_coco
 from yolo_validator.letterbox import LetterboxInfo
+
+_LABEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+
+
+def _safe_label(name: str) -> str:
+    """Reject model labels with path/shell metacharacters before they reach a
+    filename (defense-in-depth for untrusted CLI input — no separators, no
+    leading dash, no ``..`` traversal)."""
+    if not _LABEL_RE.fullmatch(name) or ".." in name:
+        raise SystemExit(f"invalid model label {name!r}: expected [A-Za-z0-9._-]")
+    return name
 
 
 def _letterbox(img: Image.Image, size: int):
@@ -273,10 +285,14 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
                                 InputVStreamParams, OutputVStreamParams, VDevice)
 
     # The usage string advertises ``~/...`` paths; Path() does not expand ``~``,
-    # so do it here (and fail fast below) rather than silently scoring 0 images.
-    hef_path = Path(hef_path).expanduser()
-    coco_val = Path(coco_val).expanduser()
-    gt = Path(gt).expanduser()
+    # so expand + resolve (the latter normalizes away any ``..`` traversal) and
+    # fail fast rather than silently scoring 0 images. ``model`` is validated
+    # because it is interpolated into the output filename below.
+    model = _safe_label(model)
+    hef_path = Path(hef_path).expanduser().resolve()
+    coco_val = Path(coco_val).expanduser().resolve()
+    gt = Path(gt).expanduser().resolve()
+    out_dir = Path(out_dir).expanduser().resolve()
     if not hef_path.exists():
         raise SystemExit(f"HEF not found: {hef_path}")
     if not gt.exists():
@@ -374,7 +390,6 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
                  "system": platform.platform(), "device": "rpi5-hailo8l"},
         "configs": {"yv-hailo": cfg},
     }
-    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     ts = time.strftime("%Y%m%d_%H%M%S")
     out_path = out_dir / f"benchmark_a_{model}_{ts}.json"
