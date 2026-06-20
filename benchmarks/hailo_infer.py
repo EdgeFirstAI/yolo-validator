@@ -192,7 +192,7 @@ def _fast_masks(protos, coeffs, boxes_lb, lb, imgsz):
     return out
 
 
-def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100, top_k=2000):
+def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100, top_k=1000):
     """Decode raw yolov8-seg outputs -> (Detections, masks).
 
     The HEF emits, per stride, a 64-ch DFL box branch + nc-ch class logits +
@@ -203,8 +203,9 @@ def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100, top_k=2000):
     NumpyPostprocessor (conf + class-aware NMS) and materialize_masks_numpy
     (σ(proto·coeffs), crop, un-letterbox) so masks match the other lanes.
     """
-    from yolo_validator.backends import ModelSpec
-    from yolo_validator.postprocess import NumpyPostprocessor
+    from yolo_validator.detections import Detections
+    from yolo_validator.letterbox import unletterbox_boxes
+    from yolo_validator.nms import nms_class_aware
 
     proto, per = None, {}
     for v in results.values():
@@ -221,27 +222,36 @@ def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100, top_k=2000):
         gx, gy = np.meshgrid(np.arange(h) + 0.5, np.arange(h) + 0.5)
         ax, ay = gx.reshape(-1), gy.reshape(-1)
         l, t, r, b = d[:, 0], d[:, 1], d[:, 2], d[:, 3]
-        x1, y1 = (ax - l) * stride, (ay - t) * stride
-        x2, y2 = (ax + r) * stride, (ay + b) * stride
-        boxes.append(np.stack([(x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1], 1))
+        boxes.append(np.stack([(ax - l) * stride, (ay - t) * stride,
+                               (ax + r) * stride, (ay + b) * stride], 1))   # xyxy
         clss.append(_sigmoid(g[80].reshape(-1, 80)))
         coeffs.append(g[32].reshape(-1, 32))
-    box_a = np.concatenate(boxes, 0)
-    cls_a = np.concatenate(clss, 0)
-    coef_a = np.concatenate(coeffs, 0)
-    # Cap candidates for the host NMS: the numpy greedy NMS is O(n^2) and the
-    # Pi ARM CPU chokes on the ~30k boxes a 0.001 threshold yields (the detect
-    # lanes dodge this via the device's baked C NMS). Keep the top-K anchors by
-    # best class score — mAP-neutral (K >> COCO maxDets=100), ~40x faster.
-    if cls_a.shape[0] > top_k:
-        drop = np.argpartition(cls_a.max(1), -top_k)[:-top_k]
-        cls_a[drop] = 0.0
-    pred = np.concatenate([box_a, cls_a, coef_a], 1).T[None].astype(np.float32)
+    boxes = np.concatenate(boxes, 0)            # (8400, 4) xyxy input space
+    cls = np.concatenate(clss, 0)               # (8400, nc)
+    coef = np.concatenate(coeffs, 0)            # (8400, nm)
     proto_t = proto.transpose(2, 0, 1)[None].astype(np.float32)   # (1, nm, mh, mw)
-    spec = ModelSpec(imgsz, imgsz, "segment")
-    det = NumpyPostprocessor(spec, score_th, iou, max_det).decode([pred, proto_t], lb)
-    masks = (_fast_masks(det.protos, det.coeffs, det.boxes_lb, lb, imgsz)
-             if det.coeffs is not None and len(det.scores) else [])
+    nm = coef.shape[1]
+    # Multi-label candidates (anchor×class), capped to top-K by score BEFORE the
+    # O(n^2) greedy NMS. The ARM CPU chokes on the ~30k pairs a 0.001 threshold
+    # yields (the detect lanes dodge this via the device's baked C NMS); top-K
+    # >> COCO maxDets=100, so this is mAP-neutral.
+    flat = cls.reshape(-1)
+    keep = np.nonzero(flat > score_th)[0]
+    if keep.size == 0:
+        empty = Detections(np.zeros((0, 4), np.float32), np.zeros((0,), np.float32),
+                           np.zeros((0,), np.int64), np.zeros((0, nm), np.float32),
+                           proto_t, np.zeros((0, 4), np.float32))
+        return empty, []
+    if keep.size > top_k:
+        keep = keep[np.argpartition(flat[keep], -top_k)[-top_k:]]
+    anc, cl, sc = keep // cls.shape[1], keep % cls.shape[1], flat[keep]
+    xyxy = boxes[anc]
+    idx = nms_class_aware(xyxy, sc, cl, iou)[:max_det]
+    boxes_lb = xyxy[idx]
+    det = Detections(boxes=unletterbox_boxes(boxes_lb, lb), scores=sc[idx],
+                     classes=cl[idx].astype(np.int64), coeffs=coef[anc][idx],
+                     protos=proto_t, boxes_lb=boxes_lb)
+    masks = _fast_masks(det.protos, det.coeffs, det.boxes_lb, lb, imgsz) if len(det.scores) else []
     return det, masks
 
 
