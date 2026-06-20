@@ -192,7 +192,7 @@ def _fast_masks(protos, coeffs, boxes_lb, lb, imgsz):
     return out
 
 
-def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100):
+def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100, top_k=2000):
     """Decode raw yolov8-seg outputs -> (Detections, masks).
 
     The HEF emits, per stride, a 64-ch DFL box branch + nc-ch class logits +
@@ -226,8 +226,17 @@ def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=100):
         boxes.append(np.stack([(x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1], 1))
         clss.append(_sigmoid(g[80].reshape(-1, 80)))
         coeffs.append(g[32].reshape(-1, 32))
-    pred = np.concatenate([np.concatenate(boxes, 0), np.concatenate(clss, 0),
-                           np.concatenate(coeffs, 0)], 1).T[None].astype(np.float32)
+    box_a = np.concatenate(boxes, 0)
+    cls_a = np.concatenate(clss, 0)
+    coef_a = np.concatenate(coeffs, 0)
+    # Cap candidates for the host NMS: the numpy greedy NMS is O(n^2) and the
+    # Pi ARM CPU chokes on the ~30k boxes a 0.001 threshold yields (the detect
+    # lanes dodge this via the device's baked C NMS). Keep the top-K anchors by
+    # best class score — mAP-neutral (K >> COCO maxDets=100), ~40x faster.
+    if cls_a.shape[0] > top_k:
+        drop = np.argpartition(cls_a.max(1), -top_k)[:-top_k]
+        cls_a[drop] = 0.0
+    pred = np.concatenate([box_a, cls_a, coef_a], 1).T[None].astype(np.float32)
     proto_t = proto.transpose(2, 0, 1)[None].astype(np.float32)   # (1, nm, mh, mw)
     spec = ModelSpec(imgsz, imgsz, "segment")
     det = NumpyPostprocessor(spec, score_th, iou, max_det).decode([pred, proto_t], lb)
