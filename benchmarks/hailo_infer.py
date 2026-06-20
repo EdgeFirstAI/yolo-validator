@@ -293,10 +293,8 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
             # Override to the eval threshold at runtime so the score is
             # comparable to the other lanes (no-op / ignored for HEFs without a
             # HAILO_NMS output, e.g. NMS-free yolo26).
-            try:
+            if head == "nms":
                 pipeline.set_nms_score_threshold(score_th)
-            except Exception:
-                pass
             with ng.activate(ng_params):
                 for i, img_path in enumerate(images):
                     image_id = int(img_path.stem)
