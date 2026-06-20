@@ -81,8 +81,11 @@ PLATFORMS = {
         "edgefirst_key": "macos-onnx-coreml-ane",
     },
     "rpi5-hailo8l": {
+        # Primary baseline = Hailo Model Zoo PRECOMPILED HEFs (vendor:hailo-model-zoo);
+        # our own DFC compile (vendor:hailo-dfc, hailo_compile.py) only fills gaps
+        # the zoo doesn't publish (e.g. yolov5nu).
         "backend": "hailort", "device": "hailo",
-        "baseline_validator": "yolo-validator", "vendor": "hailo-dfc",
+        "baseline_validator": "yolo-validator", "vendor": "hailo-model-zoo",
         "edgefirst_key": "rpi5-hailo8l",
     },
     "imx95-neutron": {
@@ -111,6 +114,7 @@ CONFIG_LANE = {
     "yv-torch":    ("yolo-validator", "torch"),
     "yv-numpy":    ("yolo-validator", "numpy"),
     "yv-tensorrt": ("yolo-validator", "tensorrt"),
+    "yv-hailo":    ("yolo-validator", "hailo"),
 }
 
 

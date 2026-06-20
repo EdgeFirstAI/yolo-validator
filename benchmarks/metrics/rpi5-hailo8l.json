@@ -1,0 +1,272 @@
+{
+  "platform": "rpi5-hailo8l",
+  "host": {
+    "machine": "aarch64",
+    "node": "rpi5-hailo",
+    "system": "Linux-6.18.33+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "device": "rpi5-hailo8l"
+  },
+  "eval": "crowd-as-normal",
+  "rows": [
+    {
+      "model": "yolo11n",
+      "variant": "yolo11n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.37577109889981414,
+      "box_ap50": 0.5297858280816368,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 36.66873998328435,
+      "latency_ms": {
+        "pre": 7.4932751206331885,
+        "inf": 19.396589686814696,
+        "post": 0.34442464164458214,
+        "e2e": 27.234289449092465
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26m",
+      "variant": "yolo26m",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.5004771873630667,
+      "box_ap50": 0.6730134257372903,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 10.116117043941564,
+      "latency_ms": {
+        "pre": 7.570005251048133,
+        "inf": 81.9957410916104,
+        "post": 9.245270444161724,
+        "e2e": 98.81101678682026
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.37798266613898923,
+      "box_ap50": 0.5342880416549781,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 26.434689022974986,
+      "latency_ms": {
+        "pre": 7.615050975442864,
+        "inf": 20.745782548806165,
+        "post": 9.393158857652452,
+        "e2e": 37.75399238190148
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.45016581265258276,
+      "box_ap50": 0.6201656432479546,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 18.66082213418931,
+      "latency_ms": {
+        "pre": 7.645762559189461,
+        "inf": 35.52971791996388,
+        "post": 10.367591040988918,
+        "e2e": 53.543071520142256
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov5nu",
+      "variant": "yolov5nu",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": "train2017/1024"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-dfc",
+      "engine": "hailo",
+      "box_ap": 0.33250437190753224,
+      "box_ap50": 0.48125018426162053,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 35.91182260763875,
+      "latency_ms": {
+        "pre": 7.508963527751621,
+        "inf": 19.93897525209468,
+        "post": 0.36107676113024356,
+        "e2e": 27.809015540976542
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov5s",
+      "variant": "yolov5s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.3380210615865757,
+      "box_ap50": 0.5355282671256675,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 25.920245125330776,
+      "latency_ms": {
+        "pre": 7.471921689261217,
+        "inf": 30.02358809809666,
+        "post": 1.0477590498281644,
+        "e2e": 38.54326883718604
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.36033609781907544,
+      "box_ap50": 0.5090824421187833,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 42.00821703284874,
+      "latency_ms": {
+        "pre": 7.474630079173949,
+        "inf": 15.922991571039892,
+        "post": 0.3676588918780908,
+        "e2e": 23.765280542091933
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8m-seg",
+      "variant": "yolov8m-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.482115263850238,
+      "box_ap50": 0.6444626117333605,
+      "mask_ap": 0.3835183258483033,
+      "mask_ap50": 0.6052015770305185,
+      "fps_wall": 2.793068720486054,
+      "latency_ms": {
+        "pre": 7.738352361845318,
+        "inf": 87.19596986216493,
+        "post": 263.05085996959826,
+        "e2e": 357.98518219360847
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.35046332035209293,
+      "box_ap50": 0.4988423028186565,
+      "mask_ap": 0.286293078389028,
+      "mask_ap50": 0.46786877969261953,
+      "fps_wall": 3.5303634979572283,
+      "latency_ms": {
+        "pre": 7.7490584314684385,
+        "inf": 17.167200595955364,
+        "post": 258.29572161248655,
+        "e2e": 283.21198063991034
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8s-seg",
+      "variant": "yolov8s-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.43030718873736545,
+      "box_ap50": 0.5909582578308784,
+      "mask_ap": 0.3462400515319487,
+      "mask_ap50": 0.5544697579761757,
+      "fps_wall": 3.117456635275342,
+      "latency_ms": {
+        "pre": 7.8239348058239555,
+        "inf": 46.30014695705613,
+        "post": 266.60269628964596,
+        "e2e": 320.7267780525261
+      },
+      "n_images": 5000
+    }
+  ]
+}
