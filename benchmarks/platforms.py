@@ -111,6 +111,7 @@ CONFIG_LANE = {
     "yv-torch":    ("yolo-validator", "torch"),
     "yv-numpy":    ("yolo-validator", "numpy"),
     "yv-tensorrt": ("yolo-validator", "tensorrt"),
+    "yv-hailo":    ("yolo-validator", "hailo"),
 }
 
 
