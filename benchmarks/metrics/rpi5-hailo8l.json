@@ -189,6 +189,84 @@
         "e2e": 23.765280542091933
       },
       "n_images": 5000
+    },
+    {
+      "model": "yolov8m-seg",
+      "variant": "yolov8m-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.482115263850238,
+      "box_ap50": 0.6444626117333605,
+      "mask_ap": 0.3835183258483033,
+      "mask_ap50": 0.6052015770305185,
+      "fps_wall": 2.793068720486054,
+      "latency_ms": {
+        "pre": 7.738352361845318,
+        "inf": 87.19596986216493,
+        "post": 263.05085996959826,
+        "e2e": 357.98518219360847
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.35046332035209293,
+      "box_ap50": 0.4988423028186565,
+      "mask_ap": 0.286293078389028,
+      "mask_ap50": 0.46786877969261953,
+      "fps_wall": 3.5303634979572283,
+      "latency_ms": {
+        "pre": 7.7490584314684385,
+        "inf": 17.167200595955364,
+        "post": 258.29572161248655,
+        "e2e": 283.21198063991034
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8s-seg",
+      "variant": "yolov8s-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "hailo-dfc",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:hailo-model-zoo",
+      "engine": "hailo",
+      "box_ap": 0.43030718873736545,
+      "box_ap50": 0.5909582578308784,
+      "mask_ap": 0.3462400515319487,
+      "mask_ap50": 0.5544697579761757,
+      "fps_wall": 3.117456635275342,
+      "latency_ms": {
+        "pre": 7.8239348058239555,
+        "inf": 46.30014695705613,
+        "post": 266.60269628964596,
+        "e2e": 320.7267780525261
+      },
+      "n_images": 5000
     }
   ]
 }
