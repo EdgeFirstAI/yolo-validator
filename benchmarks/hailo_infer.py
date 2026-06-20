@@ -29,7 +29,8 @@ import numpy as np
 from PIL import Image
 
 from benchmarks.canonical_eval import canonical_eval
-from yolo_validator.coco_output import coco80_to_coco91
+from yolo_validator.coco_output import coco80_to_coco91, detections_to_coco
+from yolo_validator.letterbox import LetterboxInfo
 
 
 def _letterbox(img: Image.Image, size: int):
@@ -146,6 +147,61 @@ def _decode_nmsfree(results, imgsz, scale, pad_x, pad_y, w0, h0, class_map,
     return recs
 
 
+def _dfl(box):
+    """DFL: (N,64) box logits -> (N,4) integrated distances (softmax over 16)."""
+    x = box.reshape(-1, 4, 16)
+    x = x - x.max(-1, keepdims=True)
+    e = np.exp(x)
+    p = e / e.sum(-1, keepdims=True)
+    return (p * np.arange(16, dtype=np.float32)).sum(-1)
+
+
+def _decode_seg(results, imgsz, lb, score_th, iou=0.7, max_det=300):
+    """Decode raw yolov8-seg outputs -> (Detections, masks).
+
+    The HEF emits, per stride, a 64-ch DFL box branch + nc-ch class logits +
+    nm-ch mask coefficients, plus an (mh, mw, nm) prototype tensor — no on-chip
+    decode/NMS/masks. We rebuild the standard ``[1, 4+nc+nm, 8400]`` array
+    (DFL+anchor box decode -> xywh, sigmoid class, raw coeffs) and a
+    ``[1, nm, mh, mw]`` proto, then reuse yolo-validator's VALIDATED
+    NumpyPostprocessor (conf + class-aware NMS) and materialize_masks_numpy
+    (σ(proto·coeffs), crop, un-letterbox) so masks match the other lanes.
+    """
+    from yolo_validator.backends import ModelSpec
+    from yolo_validator.masks import materialize_masks_numpy
+    from yolo_validator.postprocess import NumpyPostprocessor
+
+    proto, per = None, {}
+    for v in results.values():
+        a = np.asarray(v)[0]            # (H, W, C)
+        h, _, c = a.shape
+        if c == 32 and h >= 160:
+            proto = a                   # (mh, mw, nm) prototype masks
+        else:
+            per.setdefault(h, {})[c] = a
+    boxes, clss, coeffs = [], [], []
+    for h in sorted(per, reverse=True):
+        g, stride = per[h], imgsz // h
+        d = _dfl(g[64].reshape(-1, 64))     # (HW, 4) distances l,t,r,b
+        gx, gy = np.meshgrid(np.arange(h) + 0.5, np.arange(h) + 0.5)
+        ax, ay = gx.reshape(-1), gy.reshape(-1)
+        l, t, r, b = d[:, 0], d[:, 1], d[:, 2], d[:, 3]
+        x1, y1 = (ax - l) * stride, (ay - t) * stride
+        x2, y2 = (ax + r) * stride, (ay + b) * stride
+        boxes.append(np.stack([(x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1], 1))
+        clss.append(_sigmoid(g[80].reshape(-1, 80)))
+        coeffs.append(g[32].reshape(-1, 32))
+    pred = np.concatenate([np.concatenate(boxes, 0), np.concatenate(clss, 0),
+                           np.concatenate(coeffs, 0)], 1).T[None].astype(np.float32)
+    proto_t = proto.transpose(2, 0, 1)[None].astype(np.float32)   # (1, nm, mh, mw)
+    spec = ModelSpec(imgsz, imgsz, "segment")
+    det = NumpyPostprocessor(spec, score_th, iou, max_det).decode([pred, proto_t], lb)
+    masks = (materialize_masks_numpy(det.protos, det.coeffs, det.boxes_lb,
+                                     lb, imgsz, imgsz)
+             if det.coeffs is not None and len(det.scores) else [])
+    return det, masks
+
+
 def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
         head="auto"):
     from hailo_platform import (HEF, ConfigureParams, FormatType,
@@ -204,10 +260,14 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
                         raw = results[next(iter(results))][0]  # per-class list
                         preds.extend(_decode_nms(raw, imgsz, scale, pad_x, pad_y,
                                                  w0, h0, class_map, image_id, score_th))
-                    else:  # nmsfree (yolo26)
+                    elif head == "nmsfree":  # yolo26
                         preds.extend(_decode_nmsfree(results, imgsz, scale, pad_x,
                                                      pad_y, w0, h0, class_map,
                                                      image_id, score_th))
+                    else:  # segment (yolov8-seg)
+                        lb = LetterboxInfo(scale, pad_x, pad_y, w0, h0)
+                        det, masks = _decode_seg(results, imgsz, lb, score_th)
+                        preds.extend(detections_to_coco(image_id, det, class_map, masks))
                     t3 = time.perf_counter()
                     t_pre += t1 - t0
                     t_inf += t2 - t1
@@ -217,12 +277,14 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
         wall = time.perf_counter() - wall0
 
     n = len(images)
+    seg = head == "segment"
+    iou_types = ("bbox", "segm") if seg else ("bbox",)
     print(f"[hailo_infer] scoring {len(preds)} detections over {n} images…")
-    metrics = canonical_eval(str(gt), preds, iou_types=("bbox",))
+    metrics = canonical_eval(str(gt), preds, iou_types=iou_types)
 
     cfg = {
         "bbox": metrics["bbox"],
-        "segm": None,
+        "segm": metrics.get("segm"),
         "timing": {
             "preprocess": 1e3 * t_pre / n,
             "inference": 1e3 * t_inf / n,
@@ -233,7 +295,7 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
         "n_images": n,
     }
     doc = {
-        "label": model, "task": "detect",
+        "label": model, "task": "segment" if seg else "detect",
         "host": {"machine": platform.machine(), "node": platform.node(),
                  "system": platform.platform(), "device": "rpi5-hailo8l"},
         "configs": {"yv-hailo": cfg},
@@ -244,7 +306,8 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th,
     out_path = out_dir / f"benchmark_a_{model}_{ts}.json"
     out_path.write_text(json.dumps(doc, indent=2))
     b = metrics["bbox"]
-    print(f"[hailo_infer] {model}: box AP={b['AP']:.4f} AP50={b['AP50']:.4f} "
+    mask = f" mask AP={metrics['segm']['AP']:.4f}" if seg and metrics.get("segm") else ""
+    print(f"[hailo_infer] {model}: box AP={b['AP']:.4f} AP50={b['AP50']:.4f}{mask} "
           f"| {cfg['fps_wall']:.1f} fps | inf {cfg['timing']['inference']:.2f} ms "
           f"-> {out_path}")
     return out_path
