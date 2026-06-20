@@ -3,6 +3,12 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+venv-*/
+
+# Hailo DFC env-build markers + SDK runtime logs (written on import/compile)
+venv-hailo-install.*
+acceleras.log
+hailo_sdk.client.log
 .pytest_cache/
 *.onnx
 *.dvm
