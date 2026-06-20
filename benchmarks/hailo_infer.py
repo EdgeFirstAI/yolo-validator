@@ -114,6 +114,15 @@ def run(hef_path, model, coco_val, gt, out_dir, imgsz, limit, score_th):
         out_params = OutputVStreamParams.make(ng, quantized=False, format_type=FormatType.FLOAT32)
         wall0 = time.perf_counter()
         with InferVStreams(ng, in_params, out_params) as pipeline:
+            # Vendor Model-Zoo HEFs bake a *deployment* NMS score threshold
+            # (e.g. 0.2) that clips low-confidence boxes and depresses COCO mAP.
+            # Override to the eval threshold at runtime so the score is
+            # comparable to the other lanes (no-op / ignored for HEFs without a
+            # HAILO_NMS output, e.g. NMS-free yolo26).
+            try:
+                pipeline.set_nms_score_threshold(score_th)
+            except Exception:
+                pass
             with ng.activate(ng_params):
                 for i, img_path in enumerate(images):
                     image_id = int(img_path.stem)
