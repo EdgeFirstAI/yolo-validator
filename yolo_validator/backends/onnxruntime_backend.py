@@ -29,6 +29,9 @@ class OnnxRuntimeBackend:
         shape = inp.shape  # [N, C, H, W]
         h = int(shape[2]) if isinstance(shape[2], int) else 640
         w = int(shape[3]) if isinstance(shape[3], int) else 640
+        # Fixed batch dim (int) or None when the ONNX has a dynamic batch axis;
+        # the pipeline rejects batch_size>1 on a fixed batch==1 graph.
+        self.input_batch = shape[0] if isinstance(shape[0], int) else None
         self.input_name = inp.name
         outputs = self.session.get_outputs()
         inferred = "segment" if len(outputs) >= 2 else "detect"

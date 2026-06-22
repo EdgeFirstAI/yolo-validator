@@ -16,6 +16,7 @@ BENCHMARK.md).
 """
 from __future__ import annotations
 
+import cv2
 import numpy as np
 
 
@@ -53,3 +54,35 @@ def nms_class_aware(boxes, scores, classes, iou_thres: float, max_wh: float = 76
         return np.zeros((0,), dtype=np.int64)
     offset = np.asarray(classes, dtype=np.float32).reshape(-1, 1) * max_wh
     return nms(boxes + offset, scores, iou_thres)
+
+
+def nms_class_aware_cv2(boxes, scores, classes, conf: float, iou_thres: float,
+                        max_det: int) -> np.ndarray:
+    """Class-aware NMS via OpenCV's C-optimized ``cv2.dnn.NMSBoxesBatched``.
+
+    Same per-class suppression intent as :func:`nms_class_aware`, but delegated to
+    OpenCV. ``score_threshold=conf`` runs the real (conf=0.001) score filter,
+    ``nms_threshold=iou_thres``, and ``top_k=max_det`` caps the output — so the
+    result is already sorted by score, highest first, and capped. Boxes are xyxy on
+    input; cv2 wants xywh (top-left + size). Returns kept indices into the inputs.
+
+    OpenCV's NMS uses a different algorithm/tie-breaking than the greedy NumPy path,
+    so this is the "fast"-mode NMS only and is gated behind an accuracy check
+    (within ~1 pp box mAP of the faithful greedy path AND faster) before it is
+    trusted for the benchmark — see the benchmark verification.
+    """
+    boxes = np.asarray(boxes, dtype=np.float32).reshape(-1, 4)
+    if boxes.shape[0] == 0:
+        return np.zeros((0,), dtype=np.int64)
+    scores = np.asarray(scores, dtype=np.float32).reshape(-1)
+    classes = np.asarray(classes).reshape(-1).astype(np.int32)
+    xywh = np.empty_like(boxes)
+    xywh[:, 0] = boxes[:, 0]
+    xywh[:, 1] = boxes[:, 1]
+    xywh[:, 2] = boxes[:, 2] - boxes[:, 0]
+    xywh[:, 3] = boxes[:, 3] - boxes[:, 1]
+    keep = cv2.dnn.NMSBoxesBatched(
+        xywh.tolist(), scores.tolist(), classes.tolist(),
+        float(conf), float(iou_thres), top_k=int(max_det),
+    )
+    return np.asarray(keep, dtype=np.int64).reshape(-1)

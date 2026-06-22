@@ -40,7 +40,8 @@ Canonical metrics schema (``benchmarks/metrics/<platform>.json``)::
           "mask_ap": null, "mask_ap50": null,
           "fps_wall": 0.0,
           "latency_ms": {"pre": 0.0, "inf": 0.0, "post": 0.0, "e2e": 0.0},
-          "n_images": 5000
+          "n_images": 5000,
+          "batch": 1                   # inference batch size (1 = single-stream)
         }
       ]
     }
@@ -110,6 +111,7 @@ PLATFORMS = {
 CONFIG_LANE = {
     "ult-pt":      ("ultralytics", "pytorch"),
     "ult-onnx":    ("ultralytics", "onnx"),
+    "ult-coreml":  ("ultralytics", "coreml"),
     "ult-engine":  ("ultralytics", "tensorrt"),
     "yv-torch":    ("yolo-validator", "torch"),
     "yv-numpy":    ("yolo-validator", "numpy"),

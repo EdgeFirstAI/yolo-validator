@@ -43,19 +43,30 @@ import json
 import os
 from pathlib import Path
 
+from benchmarks.platforms import PLATFORMS
 from benchmarks.studio_fetch import edgefirst_canonical
 
 METRICS_DIR = Path(__file__).resolve().parent / "metrics"
 CACHE_PATH = Path(__file__).resolve().parent / "results" / "edgefirst_studio_cache.json"
-OUR_PLATFORMS = {"onnx-cpu", "onnx-cuda", "orin-nano-tensorrt", "rpi5-hailo8l"}
+OUR_PLATFORMS = {"onnx-cpu", "onnx-cuda", "orin-nano-tensorrt", "rpi5-hailo8l",
+                 "macos-onnx-coreml"}
 
 # Platforms where EdgeFirst and our runs share the device AND runtime family, so
 # a throughput comparison is valid. onnx-cpu is excluded (Graviton vs i9).
-HW_MATCHED = {"onnx-cuda", "orin-nano-tensorrt", "rpi5-hailo8l"}
+# macos-onnx-coreml is hw+runtime matched: both sides are ORT CoreML EP on the ANE.
+HW_MATCHED = {"onnx-cuda", "orin-nano-tensorrt", "rpi5-hailo8l", "macos-onnx-coreml"}
+
+# EdgeFirst catalog platform string -> our platform id, via the registry's
+# ``edgefirst_key``. For every prior platform our id == edgefirst_key, so the join
+# worked by coincidence; macOS is the first to differ (our ``macos-onnx-coreml`` vs
+# catalog ``macos-onnx-coreml-ane``). Only ``-ane`` is wired in the registry, so the
+# catalog's ``-gpu``/``-cpu`` lanes have no entry and are naturally excluded.
+EF_KEY_TO_OURS = {m["edgefirst_key"]: pid
+                  for pid, m in PLATFORMS.items() if m.get("edgefirst_key")}
 
 # Preferred engine per lane: ultralytics = the canonical validator; yolo-validator
 # = the portable single-stream path that matches EdgeFirst's runtime.
-ULT_ENGINES = ("pytorch", "tensorrt", "onnx")
+ULT_ENGINES = ("pytorch", "tensorrt", "onnx", "coreml")
 YV_ENGINES = ("numpy", "tensorrt", "hailo", "torch")
 
 
@@ -107,11 +118,12 @@ def match_catalog(catalog_path: Path, ours: dict) -> list[dict]:
     doc = json.load(open(catalog_path))
     matched, seen, dropped = [], set(), 0
     for rec in doc["records"]:
-        if rec["platform"] not in OUR_PLATFORMS:
+        our_plat = EF_KEY_TO_OURS.get(rec["platform"], rec["platform"])
+        if our_plat not in OUR_PLATFORMS:
             continue
         task = "segment" if rec["task"] == "seg" else "detect"
         for cand in _candidates(rec):
-            key = (rec["platform"], cand, task, rec["precision"])
+            key = (our_plat, cand, task, rec["precision"])
             if key not in ours:
                 continue
             if key in seen:
@@ -124,6 +136,37 @@ def match_catalog(catalog_path: Path, ours: dict) -> list[dict]:
         print(f"note: dropped {dropped} duplicate EdgeFirst session(s) mapping to an "
               f"already-matched lane (kept first per key)")
     return matched
+
+
+def edgefirst_from_catalog(rec: dict) -> dict:
+    """Build a canonical result dict straight from a catalog record — no live fetch.
+
+    Same shape as ``studio_fetch.edgefirst_canonical`` so the report code is
+    identical. Catalog AP fields are percentage points (0-100); the report's
+    ``_pp`` multiplies by 100, and our metrics rows store fractions, so convert
+    here to fractions. Lets the accuracy axis run fully offline (no
+    edgefirst-client / httpx).
+    """
+    def frac(v):
+        return None if v is None else v / 100.0
+
+    out: dict = {"session_id": rec.get("session_id"), "session_name": rec.get("model")}
+    if rec.get("det_ap") is not None or rec.get("det_ap50") is not None:
+        out["bbox"] = {"AP": frac(rec.get("det_ap")), "AP50": frac(rec.get("det_ap50")),
+                       "AP75": frac(rec.get("det_ap75"))}
+    if rec.get("mask_ap") is not None or rec.get("mask_ap50") is not None:
+        out["segm"] = {"AP": frac(rec.get("mask_ap")), "AP50": frac(rec.get("mask_ap50")),
+                       "AP75": frac(rec.get("mask_ap75"))}
+    if rec.get("e2e_latency_ms") is not None:
+        out["timing"] = {"preprocess": rec.get("preprocess_ms"),
+                         "inference": rec.get("inference_ms"),
+                         "postprocess": rec.get("postprocess_ms"),
+                         "e2e": rec.get("e2e_latency_ms")}
+    # Validation-session throughput only (NOT the profiler bench) — same caveat as
+    # the live path; shown but never used for speedup conclusions.
+    if rec.get("realized_fps_scalar") is not None:
+        out["fps_pipeline"] = rec.get("realized_fps_scalar")
+    return out
 
 
 def _load_cache() -> dict:
@@ -153,21 +196,30 @@ def _f(val, w=6, p=2):
     return f"{'—':>{w}}" if val is None else f"{val:{w}.{p}f}"
 
 
+def _ref(plat, rows):
+    """Pick the comparison reference per the measurement rule: the Ultralytics lane
+    where Ultralytics runs on-target (platform ``baseline_validator == 'ultralytics'``),
+    else the yolo-validator proxy. Returns ``(row, lane_label)``."""
+    baseline = PLATFORMS.get(plat, {}).get("baseline_validator", "ultralytics")
+    if baseline == "ultralytics":
+        return pick(rows, "ultralytics", ULT_ENGINES), "ult"
+    return pick(rows, "yolo-validator", YV_ENGINES), "yv"
+
+
 def accuracy_report(matched, ours, ef):
-    print("\n========== ACCURACY (mAP, percentage points) ==========")
+    print("\n========== ACCURACY (mAP, percentage points — the ~1pp guardrail) ==========")
     gaps = []
     for m in sorted(matched, key=lambda x: (x["key"][0], x["key"][2], x["key"][1])):
         plat, model, task, prec = m["key"]
         rows = ours[m["key"]]
-        ult, yv = pick(rows, "ultralytics", ULT_ENGINES), pick(rows, "yolo-validator", YV_ENGINES)
+        base, lane = _ref(plat, rows)
         efc = ef.get(m["session_id"], {})
         if task == "detect":
             ef_v = _pp((efc.get("bbox") or {}).get("AP"))
-            ult_v, yv_v = _pp((ult or {}).get("box_ap")), _pp((yv or {}).get("box_ap"))
+            base_v = _pp((base or {}).get("box_ap"))
         else:
             ef_v = _pp((efc.get("segm") or {}).get("AP"))
-            ult_v, yv_v = _pp((ult or {}).get("mask_ap")), _pp((yv or {}).get("mask_ap"))
-        base_v, lane = (ult_v, "ult") if ult_v is not None else (yv_v, "yv")
+            base_v = _pp((base or {}).get("mask_ap"))
         if ef_v is not None and base_v is not None:
             gaps.append((plat, model, task, prec, lane, ef_v, base_v, ef_v - base_v))
     print("primary metric: detection = box mAP@0.5:0.95 ; segmentation = mask mAP@0.5:0.95")
@@ -182,30 +234,39 @@ def accuracy_report(matched, ours, ef):
 
 
 def perf_report(matched, ours, ef):
-    print("\n========== PERFORMANCE (validation-session throughput — NOT authoritative) ==========")
-    print("⚠ DO NOT draw throughput conclusions from this table. The EF numbers come from")
-    print("  Studio VALIDATION sessions, which are not the edgefirst-profiler benchmark:")
-    print("  - older detection sessions (profiler 1.3.2) record NO realized_fps -> shown 'n/a'")
-    print("    (we no longer fabricate 1000/e2e, which previously faked a serial throughput).")
-    print("  - where present (newer seg sessions) it is the validation run's throughput, still")
-    print("    not the profiler's pipelined bench.")
-    print("  Authoritative EdgeFirst throughput = on-device profiler bench (hailortcli /")
-    print("  bench-internal). yv fps_wall is our single-stream reference.\n")
+    print("\n========== PERFORMANCE — EdgeFirst vs reference (PRIMARY KPI) ==========")
+    print("speedup = EdgeFirst fps / reference fps_wall. Reference = Ultralytics where it")
+    print("runs on-target, else the yolo-validator proxy (per platform baseline_validator).")
+    print("EdgeFirst is PIPELINED (overlapped stages); the reference is single-stream, so the")
+    print("speedup reflects EdgeFirst's pipelining + optimized decode (a legitimate edge")
+    print("optimization Ultralytics does not provide for validation). EF fps is the recorded")
+    print("realized/median throughput; absent on some older sessions (n/a).\n")
+    speedups = []
     for plat in sorted({m["key"][0] for m in matched}):
         print(f"### {plat}")
-        print("model          task    prec  |  EF fps(val)  yv fps  |  EF e2e  yv e2e ms")
-        print("-" * 74)
+        print("model          task    prec  | EF fps   ref fps  speedup | EF e2e  ref e2e ms | ref")
+        print("-" * 86)
         for m in sorted([x for x in matched if x["key"][0] == plat], key=lambda x: x["key"][1]):
             _, model, task, prec = m["key"]
-            yv = pick(ours[m["key"]], "yolo-validator", YV_ENGINES)
+            ref, lane = _ref(plat, ours[m["key"]])
             efc = ef.get(m["session_id"], {})
-            ef_fps = efc.get("fps_pipeline")  # None when the session didn't record it
+            ef_fps = efc.get("fps_pipeline")   # realized/median throughput; None if unrecorded
             eft = efc.get("timing") or {}
-            yv_lat = (yv or {}).get("latency_ms") or {}
+            ref_fps = (ref or {}).get("fps_wall")
+            ref_lat = (ref or {}).get("latency_ms") or {}
+            if ef_fps and ref_fps:
+                spd = ef_fps / ref_fps
+                speedups.append(spd)
+                spd_s = f"{spd:6.1f}x"
+            else:
+                spd_s = "     —"
             ef_fps_s = "   n/a" if ef_fps is None else f"{ef_fps:6.1f}"
-            print(f"{model:14s} {task:7s} {prec:5s} |   {ef_fps_s}     {_f((yv or {}).get('fps_wall'))}  |"
-                  f"  {_f(eft.get('e2e'))} {_f(yv_lat.get('e2e'))}")
+            print(f"{model:14s} {task:7s} {prec:5s} | {ef_fps_s} {_f(ref_fps)} {spd_s:>8} |"
+                  f" {_f(eft.get('e2e'))} {_f(ref_lat.get('e2e'))} | {lane}")
         print()
+    if speedups:
+        print(f"speedup: n={len(speedups)}  mean {sum(speedups)/len(speedups):.1f}x  "
+              f"min {min(speedups):.1f}x  max {max(speedups):.1f}x")
 
 
 def main() -> None:
@@ -215,15 +276,25 @@ def main() -> None:
                     help="EdgeFirst Studio metrics export (session catalog)")
     ap.add_argument("--refresh", action="store_true",
                     help="re-fetch every session via studio_fetch (ignore cache)")
+    ap.add_argument("--offline", action="store_true",
+                    help="read AP/timing straight from the catalog record instead of "
+                         "re-fetching live Studio (no edgefirst-client/httpx needed). "
+                         "The catalog already carries the full 12-metric summary + "
+                         "timing, so the accuracy axis is fully offline.")
     args = ap.parse_args()
 
     ours = load_ours()
     matched = match_catalog(args.catalog.expanduser(), ours)
-    print(f"matched {len(matched)} EdgeFirst sessions to our metrics; "
-          f"fetching via studio_fetch (cache: {CACHE_PATH.name})")
-    ef = fetch_edgefirst([m["session_id"] for m in matched], args.refresh)
-    accuracy_report(matched, ours, ef)
-    perf_report(matched, ours, ef)
+    if args.offline:
+        print(f"matched {len(matched)} EdgeFirst sessions to our metrics; "
+              f"reading AP from catalog (offline)")
+        ef = {m["session_id"]: edgefirst_from_catalog(m["ef"]) for m in matched}
+    else:
+        print(f"matched {len(matched)} EdgeFirst sessions to our metrics; "
+              f"fetching via studio_fetch (cache: {CACHE_PATH.name})")
+        ef = fetch_edgefirst([m["session_id"] for m in matched], args.refresh)
+    perf_report(matched, ours, ef)      # primary KPI first
+    accuracy_report(matched, ours, ef)  # the ~1pp guardrail
 
 
 if __name__ == "__main__":

@@ -26,11 +26,14 @@ def run_ultralytics(
     imgsz: int = 640,
     pre_val_model=None,
     device: str | int = "cpu",
+    batch: int = 1,
 ) -> dict:
     """Run Ultralytics val and collect predictions + speed.
 
     Args:
-        model_path: path to .pt or .onnx model.
+        model_path: path to .pt / .onnx / .engine / .mlpackage model. For a
+            native CoreML .mlpackage, coremltools picks the compute unit
+            (default CPU_AND_NE → ANE); the ``device`` arg is not the selector.
         data_yaml: path to ultralytics dataset YAML (coco-val.yaml or subset_N.yaml).
         task: "detect" or "segment".
         imgsz: input image size (default 640).
@@ -56,7 +59,9 @@ def run_ultralytics(
     #
     # device selects execution target: "cpu" (default) or a CUDA index (e.g. 0)
     # for the Jetson/TensorRT runs. On CPU this matches yolo-validator's ONNX
-    # Runtime CPU provider; for .engine models device must be a CUDA index.
+    # Runtime CPU provider; for .engine models device must be a CUDA index. For a
+    # native CoreML .mlpackage the execution target is the CoreML compute unit
+    # chosen by coremltools (CPU_AND_NE → ANE), independent of this arg.
     #
     # project is set to a temp dir to avoid cluttering other projects' runs/
     # directories (Ultralytics walks up looking for a project directory).
@@ -69,7 +74,7 @@ def run_ultralytics(
             max_det=300,
             imgsz=imgsz,
             rect=False,
-            batch=1,
+            batch=batch,
             plots=False,
             verbose=False,
             device=device,
@@ -121,6 +126,7 @@ def run_yolo_validator(
     warmup: int = 3,
     runtime: str = "onnx",
     provider: str = "cpu",
+    batch_size: int = 1,
 ) -> dict:
     """Run yolo_validator ValidationPipeline via on_frame callback.
 
@@ -202,7 +208,7 @@ def run_yolo_validator(
     # warmup: predictions only (no timing) — keeps the scored image set identical
     # to Ultralytics while excluding cold-start frames from the timing stats.
     run_stats = pipeline.run(image_paths, warmup=warmup, on_frame=on_frame,
-                             warmup_on_frame=_collect_predictions)
+                             warmup_on_frame=_collect_predictions, batch_size=batch_size)
 
     return {
         "predictions": predictions,

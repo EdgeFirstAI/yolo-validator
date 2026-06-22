@@ -20,7 +20,7 @@ from __future__ import annotations
 from yolo_validator._stats import StageStats, stage_stats
 
 
-def rebin_frame(timings: dict[str, float]) -> dict[str, float]:
+def rebin_frame(timings: dict[str, float], detail: bool = False) -> dict[str, float]:
     """Map one frame's fine-stage timings to canonical {preprocess, inference, postprocess, e2e}.
 
     Accepts either raw pipeline stage keys (decode, mask) or already-canonical keys
@@ -58,6 +58,13 @@ def rebin_frame(timings: dict[str, float]) -> dict[str, float]:
         "postprocess": post,
         "e2e": e2e,
     }
+    # detail=True surfaces the fine postprocess sub-stages (decode, mask, encode)
+    # so a fast-vs-faithful run can attribute where the postprocess cost lives.
+    # Only emitted when present in the input (Ultralytics speed dicts lack them).
+    if detail:
+        for k in ("decode", "mask", "encode"):
+            if k in timings:
+                out[k] = timings[k]
     # Carry through device sub-timings when a backend exposes them (TensorRT
     # CUDA events): npu_compute is the on-device GPU compute time — the honest
     # value for an "inference (GPU)" column — vs the host-measured 'inference'
@@ -68,7 +75,7 @@ def rebin_frame(timings: dict[str, float]) -> dict[str, float]:
     return out
 
 
-def rebin_samples(per_frame_timings: list[dict[str, float]]) -> dict[str, StageStats]:
+def rebin_samples(per_frame_timings: list[dict[str, float]], detail: bool = False) -> dict[str, StageStats]:
     """Aggregate a list of per-frame canonical timings into StageStats per bucket.
 
     Args:
@@ -81,8 +88,12 @@ def rebin_samples(per_frame_timings: list[dict[str, float]]) -> dict[str, StageS
     if not per_frame_timings:
         raise ValueError("rebin_samples requires at least one frame")
 
-    rebinned_frames = [rebin_frame(f) for f in per_frame_timings]
+    rebinned_frames = [rebin_frame(f, detail=detail) for f in per_frame_timings]
     keys: list[str] = ["preprocess", "inference", "postprocess", "e2e"]
+    if detail:
+        for k in ("decode", "mask", "encode"):
+            if any(k in rf for rf in rebinned_frames):
+                keys.append(k)
     for extra in ("dma_input", "npu_compute", "dma_output"):
         if any(extra in rf for rf in rebinned_frames):
             keys.append(extra)

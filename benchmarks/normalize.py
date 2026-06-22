@@ -48,6 +48,9 @@ def _row(variant, task, precision, quant, validator, engine, vendor, cfg):
             "post": tm.get("postprocess"), "e2e": tm.get("e2e"),
         },
         "n_images": cfg.get("n_images"),
+        # Inference batch size (1 = single-stream latency reference); defaults for
+        # older results that predate the field.
+        "batch": cfg.get("batch", 1),
     }
 
 
@@ -71,7 +74,15 @@ def normalize(results_dir, platform, precision="FP32",
             if cfg.get("bbox") is None:  # config didn't score
                 continue
             validator, engine = CONFIG_LANE[key]
-            rows.append(_row(variant, task, precision, quant,
+            # The FP32 accuracy anchors (ult-pt / ult-onnx) stay FP32 even on a
+            # reduced-precision lane: the macOS CoreML lane mixes an FP32 .onnx
+            # anchor with FP16 .mlpackage + CoreML-EP rows. Every other config
+            # takes the lane's deployment --precision. No-op on FP32 lanes; the
+            # FP16/INT8 lanes historically dropped the FP32 anchors entirely, so
+            # no existing committed metrics file changes.
+            row_precision = ("FP32" if key in ("ult-pt", "ult-onnx")
+                             and precision != "FP32" else precision)
+            rows.append(_row(variant, task, row_precision, quant,
                              validator, engine, vendor, cfg))
     out = {"platform": platform, "host": host,
            "eval": "crowd-as-normal", "rows": rows}

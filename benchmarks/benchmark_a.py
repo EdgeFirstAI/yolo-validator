@@ -7,6 +7,19 @@ Runs 4 configs per model variant:
   yv-torch  — yolo-validator ValidationPipeline, torch postprocess
   yv-numpy  — yolo-validator ValidationPipeline, numpy postprocess
 
+On device=coreml (macOS Apple Silicon) the lane is:
+  ult-onnx   — Ultralytics val on the FP32 .onnx graph (CPU EP) — the FP32
+               accuracy anchor (edge precision is FP16, but the FP32 reference
+               is the same .onnx the CPU/CUDA lanes use; see STATUS.md)
+  ult-coreml — Ultralytics val on a native FP16 .mlpackage (CPU_AND_NE → ANE)
+               — the genuine native-CoreML reference
+  yv-torch   — yolo-validator on the ONNX Runtime CoreML EP (FP16, ANE) — proxy
+  yv-numpy   — yolo-validator on the ONNX Runtime CoreML EP (FP16, ANE) — proxy
+ult-pt is skipped on coreml (the deployment artifact is the .mlpackage / CoreML
+EP, FP16; the FP32 PyTorch lane is the onnx-cpu/onnx-cuda anchor's job, not this
+lane's). The yv proxy reuses the FP32 .onnx — the CoreML EP casts to FP16 at
+load, so no separate FP16 ONNX export is needed.
+
 For yolo26 models, two variants are produced:
   {name}-classic   — classic anchor-grid export (Detect.end2end=False)
   {name}-nmsfree   — E2E NMS-free export       (Detect.end2end=True)
@@ -76,12 +89,14 @@ def _has_end2end(pt_path: str) -> bool:
     return False
 
 
-def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic") -> str:
+def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic",
+                   dynamic: bool = False) -> str:
     """Export .pt to .onnx with the given export_mode.
 
     export_mode:
       "classic"  — set Detect.end2end=False before export (anchor-grid output)
       "nmsfree"  — set Detect.end2end=True before export (E2E NMS-free output)
+    ``dynamic=True`` exports a dynamic batch axis (required for batch_size>1).
 
     Idempotent: returns existing file if present.
 
@@ -97,7 +112,8 @@ def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic") 
 
     # Always include mode suffix so classic and nmsfree exports never collide,
     # and so pre-existing ONNX files from other sessions don't shadow fresh exports.
-    suffix = f"-{export_mode}"
+    # A -dyn suffix keeps the dynamic-batch export separate from the static one.
+    suffix = f"-{export_mode}" + ("-dyn" if dynamic else "")
     onnx_path = output_dir / (pt_path.stem + suffix + ".onnx")
     if onnx_path.exists():
         print(f"[export] {onnx_path} already exists, skipping export")
@@ -112,7 +128,7 @@ def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic") 
             else:
                 m.end2end = True
             break
-    exported = model.export(format="onnx", imgsz=640)
+    exported = model.export(format="onnx", imgsz=640, dynamic=dynamic)
     exported_path = Path(exported)
     if exported_path != onnx_path:
         exported_path.rename(onnx_path)
@@ -160,6 +176,66 @@ def export_to_engine(pt_path: str, output_dir: str, export_mode: str = "classic"
     return str(engine_path)
 
 
+def export_to_coreml(pt_path: str, output_dir: str, export_mode: str = "classic",
+                     half: bool = True) -> str:
+    """Export .pt to a native CoreML .mlpackage (macOS Apple Silicon).
+
+    This is the genuine native-CoreML reference artifact validated by Ultralytics
+    on-device (``YOLO("model.mlpackage").val(...)`` runs via coremltools, default
+    ComputeUnit CPU_AND_NE → ANE). ``half=True`` exports FP16, matching how the
+    edge lane deploys (STATUS.md: edge precision is FP16 + INT, never FP32).
+
+    NMS is NEVER embedded (``nms=False``), even for classic heads. Embedding the
+    CoreML NMS pipeline bakes in a fixed conf/IoU and a capped detection count,
+    which makes a COCO val at conf=0.001 impossible — recall is clipped so mAP
+    collapses (measured: yolov8n 0.344 embedded vs 0.45 raw), and the seg val
+    path errors on the NMS-pipeline output layout. A validation artifact must
+    emit the RAW model outputs so the Ultralytics validator applies NMS in
+    postprocess at the parity conf/iou. ``export_mode`` still selects the head:
+    classic = Detect.end2end=False (raw anchor-grid, external NMS); nmsfree =
+    end2end=True (one2one, already end-to-end).
+
+    The mode suffix (and -fp16/-fp32) is always in the filename so classic and
+    nmsfree exports never collide and pre-existing packages don't shadow a fresh
+    export. Idempotent: returns the existing package if present.
+
+    Returns absolute path to the .mlpackage directory.
+    """
+    from ultralytics import YOLO
+    from ultralytics.nn.modules import Detect
+
+    pt_path = Path(pt_path)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    suffix = f"-{export_mode}" + ("-fp16" if half else "-fp32")
+    coreml_path = output_dir / (pt_path.stem + suffix + ".mlpackage")
+    if coreml_path.exists():
+        print(f"[export] {coreml_path} already exists, skipping export")
+        return str(coreml_path)
+
+    # NEVER embed NMS for a validation artifact: an embedded CoreML NMS pipeline
+    # caps detections and fixes conf/IoU, which guts val mAP at conf=0.001 (see
+    # docstring). Raw outputs → the Ultralytics validator applies NMS in postprocess.
+    embed_nms = False
+    print(f"[export] exporting CoreML {pt_path} ({export_mode}, "
+          f"{'fp16' if half else 'fp32'}, nms={embed_nms}) → {coreml_path} ...")
+    model = YOLO(str(pt_path))
+    for m in model.model.modules():
+        if isinstance(m, Detect):
+            m.end2end = (export_mode == "nmsfree")
+            break
+    # device="mps" runs the export's conversion pass on Apple Metal; the produced
+    # .mlpackage is the same regardless and is validated on CPU_AND_NE (ANE).
+    exported = model.export(format="coreml", imgsz=640, half=half,
+                            nms=embed_nms, device="mps")
+    exported_path = Path(exported)
+    if exported_path != coreml_path:
+        exported_path.rename(coreml_path)
+    print(f"[export] done: {coreml_path}")
+    return str(coreml_path)
+
+
 def _infer_task(model_name: str) -> str:
     return "segment" if "seg" in model_name else "detect"
 
@@ -197,7 +273,9 @@ def _fps_cell(r: dict) -> str:
 
 def _build_markdown_table(results_per_config: dict, label: str) -> str:
     """Build the comparison markdown table for one variant."""
-    base_configs = ["ult-pt", "ult-onnx", "yv-torch", "yv-numpy"]
+    # ult-coreml is the native FP16 .mlpackage reference present only on the
+    # coreml device; it sits next to ult-onnx (the FP32 anchor) when present.
+    base_configs = ["ult-pt", "ult-onnx", "ult-coreml", "yv-torch", "yv-numpy"]
     # Append any edgefirst-profiler configs present in results (order-stable)
     edgefirst_configs = [c for c in results_per_config if c.startswith("edgefirst-")]
     configs = base_configs + edgefirst_configs
@@ -325,12 +403,17 @@ def run_benchmark_a(
     half: bool = False,
     skip_ult_pt: bool = False,
     edgefirst_session_id: str | None = None,
+    batch: int = 1,
 ) -> dict:
     """Run the benchmark configs for one model variant.
 
-    device="cpu" runs ult-pt, ult-onnx, yv-torch, yv-numpy (CPU). device="tensorrt"
-    runs ult-pt (CUDA gold ref), ult-engine and yv-tensorrt on the same TensorRT
-    engine (Jetson / NVIDIA GPU); ``half`` selects FP16 engine build.
+    device="cpu" runs ult-pt, ult-onnx, yv-torch, yv-numpy (CPU). device="cuda"
+    runs the same 4 configs on the GPU. device="tensorrt" runs ult-pt (CUDA gold
+    ref), ult-engine and yv-tensorrt on the same TensorRT engine (Jetson / NVIDIA
+    GPU); ``half`` selects FP16 engine build. device="coreml" (macOS Apple
+    Silicon) runs ult-onnx (FP32 anchor, CPU EP), ult-coreml (native FP16
+    .mlpackage on ANE) and yv-torch/yv-numpy on the ONNX Runtime CoreML EP (FP16,
+    ANE); ult-pt is skipped on coreml.
 
     Args:
         label: display name, e.g. "yolov8n-seg" or "yolo26n-classic".
@@ -439,7 +522,7 @@ def run_benchmark_a(
                 engine_path, run_images_dir, "numpy", task, run_gt_json, max_images,
                 warmup=effective_warmup, runtime="tensorrt",
             )
-            yv_trt_stats = rebin_samples(yv_trt["stage_frame_timings"])
+            yv_trt_stats = rebin_samples(yv_trt["stage_frame_timings"], detail=True)
             results_per_config["yv-tensorrt"] = {
                 **canonical_eval(run_gt_json, yv_trt["predictions"], iou_types),
                 "timing": {k: v.mean_ms for k, v in yv_trt_stats.items()},
@@ -453,24 +536,48 @@ def run_benchmark_a(
             results_per_config["yv-tensorrt"] = {"error": str(e)}
 
     else:
-        # device="cpu" or device="cuda" — same 4 configs, different hardware targets.
-        # For CUDA: Ultralytics uses device=0 (GPU); yv-torch/yv-numpy use the ONNX
-        # CUDAExecutionProvider so inference runs on the GPU. Pre/postprocess remain on
-        # the CPU (same as the CPU path) so the timing delta isolates inference speed.
-        _ult_device: str | int = 0 if device == "cuda" else "cpu"
-        _yv_provider = "cuda" if device == "cuda" else "cpu"
+        # device="cpu" | "cuda" | "coreml" — the yolo-validator proxy lane is the
+        # same FP32 .onnx through different ONNX Runtime execution providers; only
+        # the hardware target and the Ultralytics reference differ.
+        #   cpu    : Ultralytics device="cpu", ORT CPUExecutionProvider.
+        #   cuda   : Ultralytics device=0 (GPU), ORT CUDAExecutionProvider.
+        #            Pre/postprocess stay on the CPU so the timing delta isolates
+        #            inference speed.
+        #   coreml : the macOS Apple Silicon lane (FP16 deployment). ult-onnx runs
+        #            on the CPU EP as the FP32 accuracy ANCHOR (the same .onnx the
+        #            cpu/cuda anchors use — edge precision is FP16, but the anchor
+        #            is FP32 by design; STATUS.md). yv-torch/yv-numpy run on the
+        #            ORT CoreML EP (provider="coreml"), which casts the FP32 graph
+        #            to FP16 and dispatches to the ANE — the runtime-matched twin
+        #            of EdgeFirst's macos-onnx-coreml-ane lane. A native FP16
+        #            .mlpackage reference (ult-coreml) is added below. ult-pt is
+        #            skipped: the deployment artifact here is CoreML/FP16, and the
+        #            FP32 PyTorch lane is the onnx-cpu/cuda anchor's job.
+        _is_coreml = device == "coreml"
+        if device == "cuda":
+            _ult_device, _yv_provider = 0, "cuda"
+        elif _is_coreml:
+            # ult-onnx (the FP32 anchor) runs on the CPU EP; the proxy uses CoreML.
+            _ult_device, _yv_provider = "cpu", "coreml"
+        else:
+            _ult_device, _yv_provider = "cpu", "cpu"
 
-        # ---- Export to ONNX ----
-        onnx_path = export_to_onnx(str(pt_path), str(models_dir), export_mode)
+        # ---- Export to ONNX (FP32; reused by ult-onnx anchor + yv proxy lanes) ----
+        # batch>1 needs a dynamic-batch ONNX (a static batch=1 graph rejects (N,...)).
+        onnx_path = export_to_onnx(str(pt_path), str(models_dir), export_mode,
+                                   dynamic=(batch > 1))
 
-        # ---- Config 1: ult-pt (skippable via --skip-ult-pt) ----
-        if not skip_ult_pt:
+        # ---- Config 1: ult-pt (skippable via --skip-ult-pt; auto-skip on coreml) ----
+        # On coreml the FP32 PyTorch lane is redundant with the onnx-cpu/cuda FP32
+        # anchor and is not part of this FP16 lane, so it is always skipped.
+        if not skip_ult_pt and not _is_coreml:
             print(f"\n[{label}] running ult-pt ...")
             try:
                 ult_model = _YOLO(str(pt_path))
                 _set_end2end(ult_model, export_mode)
                 ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
-                                          pre_val_model=ult_model, device=_ult_device)
+                                          pre_val_model=ult_model, device=_ult_device,
+                                          batch=batch)
                 ult_pt_metrics = canonical_eval(run_gt_json, ult_pt["predictions"], iou_types)
                 ult_pt_timing = rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"])
                 results_per_config["ult-pt"] = {
@@ -488,7 +595,7 @@ def run_benchmark_a(
         # ---- Config 2: ult-onnx ----
         print(f"\n[{label}] running ult-onnx ...")
         try:
-            ult_onnx = run_ultralytics(onnx_path, run_yaml, task, device=_ult_device)
+            ult_onnx = run_ultralytics(onnx_path, run_yaml, task, device=_ult_device, batch=batch)
             ult_onnx_metrics = canonical_eval(run_gt_json, ult_onnx["predictions"], iou_types)
             ult_onnx_timing = rebin_ultralytics(ult_onnx["speed"], ult_onnx["n_images"])
             results_per_config["ult-onnx"] = {
@@ -503,15 +610,42 @@ def run_benchmark_a(
             print(f"  [FAILED] ult-onnx: {e}")
             results_per_config["ult-onnx"] = {"error": str(e)}
 
+        # ---- Config 2b: ult-coreml (coreml only) — native FP16 .mlpackage on ANE ----
+        # The genuine native-CoreML reference: Ultralytics val on a .mlpackage,
+        # which coremltools runs on CPU_AND_NE (→ ANE) by default. This is the
+        # right counterpart to EdgeFirst's macos-onnx-coreml-ane for accuracy
+        # (box/mask mAP). FP16 by design (half=True). NMS is embedded for classic
+        # heads and native for nmsfree heads (see export_to_coreml).
+        if _is_coreml:
+            print(f"\n[{label}] running ult-coreml (native .mlpackage, ANE) ...")
+            try:
+                coreml_path = export_to_coreml(str(pt_path), str(models_dir),
+                                               export_mode, half=True)
+                ult_cml = run_ultralytics(coreml_path, run_yaml, task)
+                ult_cml_metrics = canonical_eval(run_gt_json, ult_cml["predictions"], iou_types)
+                ult_cml_timing = rebin_ultralytics(ult_cml["speed"], ult_cml["n_images"])
+                results_per_config["ult-coreml"] = {
+                    **ult_cml_metrics,
+                    "timing": ult_cml_timing,
+                    "n_images": ult_cml["n_images"],
+                    "wall_s": ult_cml["wall_s"],
+                    "speed": ult_cml["speed"],
+                }
+                print(f"  box AP={ult_cml_metrics.get('bbox', {}).get('AP', 'N/A'):.4f}  wall={ult_cml['wall_s']:.1f}s")
+            except Exception as e:
+                print(f"  [FAILED] ult-coreml: {e}")
+                results_per_config["ult-coreml"] = {"error": str(e)}
+
         # ---- Config 3: yv-torch ----
         print(f"\n[{label}] running yv-torch ...")
         try:
             yv_torch = run_yolo_validator(
                 onnx_path, run_images_dir, "torch", task, run_gt_json, max_images,
                 warmup=effective_warmup, provider=_yv_provider,
+                batch_size=batch,
             )
             yv_torch_metrics = canonical_eval(run_gt_json, yv_torch["predictions"], iou_types)
-            yv_torch_stats = rebin_samples(yv_torch["stage_frame_timings"])
+            yv_torch_stats = rebin_samples(yv_torch["stage_frame_timings"], detail=True)
             yv_torch_timing = {k: v.mean_ms for k, v in yv_torch_stats.items()}
             results_per_config["yv-torch"] = {
                 **yv_torch_metrics,
@@ -531,9 +665,10 @@ def run_benchmark_a(
             yv_numpy = run_yolo_validator(
                 onnx_path, run_images_dir, "numpy", task, run_gt_json, max_images,
                 warmup=effective_warmup, provider=_yv_provider,
+                batch_size=batch,
             )
             yv_numpy_metrics = canonical_eval(run_gt_json, yv_numpy["predictions"], iou_types)
-            yv_numpy_stats = rebin_samples(yv_numpy["stage_frame_timings"])
+            yv_numpy_stats = rebin_samples(yv_numpy["stage_frame_timings"], detail=True)
             yv_numpy_timing = {k: v.mean_ms for k, v in yv_numpy_stats.items()}
             results_per_config["yv-numpy"] = {
                 **yv_numpy_metrics,
@@ -571,6 +706,7 @@ def run_benchmark_a(
     for r in results_per_config.values():
         if "error" in r:
             continue
+        r["batch"] = batch
         wall = r.get("wall_s")
         n = r.get("n_images")
         if wall and n:
@@ -642,12 +778,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--gt-json",
                    default="~/Datasets/COCO/annotations/instances_val2017.json",
                    metavar="FILE")
-    p.add_argument("--device", default="cpu", choices=["cpu", "cuda", "tensorrt"],
+    p.add_argument("--device", default="cpu",
+                   choices=["cpu", "cuda", "tensorrt", "coreml"],
                    help="cpu: ult-pt/ult-onnx/yv-torch/yv-numpy on CPU. "
                         "cuda: same 4 configs on GPU (Ultralytics device=0, ORT CUDAExecutionProvider). "
-                        "tensorrt: ult-pt(cuda)/ult-engine/yv-tensorrt on a TRT engine.")
+                        "tensorrt: ult-pt(cuda)/ult-engine/yv-tensorrt on a TRT engine. "
+                        "coreml: macOS Apple Silicon — ult-onnx (FP32 anchor, CPU EP), "
+                        "ult-coreml (native FP16 .mlpackage on ANE), yv-torch/yv-numpy on "
+                        "the ORT CoreML EP (FP16, ANE); ult-pt skipped.")
     p.add_argument("--half", action="store_true",
-                   help="Build FP16 TensorRT engines (device=tensorrt only).")
+                   help="Build FP16 TensorRT engines (device=tensorrt only). "
+                        "device=coreml always exports FP16 .mlpackage regardless.")
+    p.add_argument("--batch", type=int, default=1, metavar="N",
+                   help="Inference batch size. 1 (default) = single-stream latency "
+                        "reference (matches the non-batched edgefirst-profiler). N>1 "
+                        "measures batched throughput, ONNX-EP only (cpu/cuda); rejected "
+                        "on tensorrt/coreml (fixed batch=1).")
     p.add_argument("--skip-ult-pt", action="store_true",
                    help="Skip the Ultralytics PyTorch reference lane. Use where "
                         "the TensorRT/ONNX engine is the deployment path (e.g. "
@@ -720,6 +866,13 @@ def main() -> None:
         and not args.no_isolate
         and args.only_export_mode is None
     )
+
+    if args.batch > 1 and args.device not in ("cpu", "cuda"):
+        raise SystemExit(
+            f"--batch {args.batch} is only supported on --device cpu|cuda (ONNX EP "
+            f"dynamic batch). device={args.device} is fixed batch=1 (native CoreML / "
+            f"TensorRT cannot dynamic-batch). Use --batch 1 there."
+        )
 
     images_dir = Path(args.images_dir).expanduser()
     gt_json = Path(args.gt_json).expanduser()
@@ -794,6 +947,7 @@ def main() -> None:
                     half=args.half,
                     skip_ult_pt=args.skip_ult_pt,
                     edgefirst_session_id=args.edgefirst_session,
+                    batch=args.batch,
                 )
             except Exception as e:
                 print(f"[ERROR] {label} failed: {e}")

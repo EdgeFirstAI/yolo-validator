@@ -27,6 +27,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--iou", type=float, default=0.7)
     p.add_argument("--max-det", type=int, default=300)
     p.add_argument("--warmup", type=int, default=3)
+    p.add_argument("--batch", type=int, default=1,
+                   help="Inference batch size. 1 = single-stream latency reference; "
+                        "N>1 measures batched throughput and needs a dynamic-batch ONNX.")
     p.add_argument("--max-images", type=int, default=None)
     p.add_argument("--output", default="results.json")
     p.add_argument("--provider", default="cpu", help="onnx EP: cpu|cuda|coreml")
@@ -89,7 +92,7 @@ def main(argv=None) -> int:
                                masks=res.masks if len(res.masks) else None)
         )
 
-    stats = pipe.run(images, warmup=args.warmup, on_frame=on_frame)
+    stats = pipe.run(images, warmup=args.warmup, on_frame=on_frame, batch_size=args.batch)
 
     print(format_stage_table(stats.stages))
     e2e = sum(s.mean_ms for k, s in stats.stages.items()
