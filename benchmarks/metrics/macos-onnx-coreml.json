@@ -1,0 +1,229 @@
+{
+  "platform": "macos-onnx-coreml",
+  "host": {
+    "platform": "macOS-26.4.1-arm64-arm-64bit",
+    "processor": "arm",
+    "cpu_count": 12,
+    "omp_num_threads": "1",
+    "python": "3.12.13"
+  },
+  "eval": "crowd-as-normal",
+  "rows": [
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.36042292013124544,
+      "box_ap50": 0.5117744792401708,
+      "mask_ap": 0.3017796335989639,
+      "mask_ap50": 0.4843408749286024,
+      "fps_wall": 5.576557337270163,
+      "latency_ms": {
+        "pre": 0.21379935479490086,
+        "inf": 40.08519199860748,
+        "post": 46.68827045320067,
+        "e2e": 86.98726180660304
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP16",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "coreml",
+      "box_ap": 0.3603901558478068,
+      "box_ap50": 0.511436504823216,
+      "mask_ap": 0.301793506509905,
+      "mask_ap50": 0.4844116383074675,
+      "fps_wall": 6.8791503373331775,
+      "latency_ms": {
+        "pre": 0.21370538034243508,
+        "inf": 8.999815544858574,
+        "post": 40.871208291780206,
+        "e2e": 50.084729216981216
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP16",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.358757969395628,
+      "box_ap50": 0.5083745122849477,
+      "mask_ap": 0.2980262579988474,
+      "mask_ap50": 0.4811413610620056,
+      "fps_wall": 7.822592750685791,
+      "latency_ms": {
+        "pre": 1.0995384296536526,
+        "inf": 10.405919779809995,
+        "post": 113.52456665573348,
+        "e2e": 125.03002486519712
+      },
+      "n_images": 4997,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "FP16",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.35564166673688996,
+      "box_ap50": 0.5024949460567482,
+      "mask_ap": 0.29614563572788344,
+      "mask_ap50": 0.47664773440402464,
+      "fps_wall": 17.3760645570699,
+      "latency_ms": {
+        "pre": 0.659775251575498,
+        "inf": 10.718356986107144,
+        "post": 43.414338519242726,
+        "e2e": 54.79247075692537
+      },
+      "n_images": 4997,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP32",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "onnx",
+      "box_ap": 0.3669973925324469,
+      "box_ap50": 0.5164148397346108,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 25.077770513089142,
+      "latency_ms": {
+        "pre": 0.2226531919557601,
+        "inf": 29.37299616300734,
+        "post": 1.1464978003758006,
+        "e2e": 30.742147155338902
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP16",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "coreml",
+      "box_ap": 0.36717869289513755,
+      "box_ap50": 0.516989656118346,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 63.4401749335664,
+      "latency_ms": {
+        "pre": 0.17577963976655153,
+        "inf": 7.862961211602669,
+        "post": 0.9308332022163085,
+        "e2e": 8.96957405358553
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP16",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "torch",
+      "box_ap": 0.3650267314888719,
+      "box_ap50": 0.5129812146025322,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 75.9600282261634,
+      "latency_ms": {
+        "pre": 0.9149590758105439,
+        "inf": 8.618002381136245,
+        "post": 1.8146712885360121,
+        "e2e": 11.3476327454828
+      },
+      "n_images": 4997,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "FP16",
+      "quant": {
+        "method": "none",
+        "calib": null
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "numpy",
+      "box_ap": 0.3617871413418316,
+      "box_ap50": 0.50657370605735,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 75.88971906166472,
+      "latency_ms": {
+        "pre": 0.603456328580503,
+        "inf": 8.688730553640747,
+        "post": 2.0799398976151697,
+        "e2e": 11.372126779836421
+      },
+      "n_images": 4997,
+      "batch": 1
+    }
+  ]
+}
