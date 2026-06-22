@@ -26,7 +26,7 @@ Canonical metrics schema (``benchmarks/metrics/<platform>.json``)::
           "task":      "detect",         # detect | segment
           "precision": "FP32",           # FP32 | FP16 | INT8 | INT16
           "quant": {                     # how the artifact was quantized
-            "method": "none",            # none | trt-entropy | hailo-dfc
+            "method": "none",            # none | trt-entropy | hailo-model-zoo
                                          #      | tflite-ptq | nxp-eiq | ...
             "calib":  null               # e.g. "train2017/500" | null
           },
@@ -81,9 +81,9 @@ PLATFORMS = {
         "edgefirst_key": "macos-onnx-coreml-ane",
     },
     "rpi5-hailo8l": {
-        # Primary baseline = Hailo Model Zoo PRECOMPILED HEFs (vendor:hailo-model-zoo);
-        # our own DFC compile (vendor:hailo-dfc, hailo_compile.py) only fills gaps
-        # the zoo doesn't publish (e.g. yolov5nu).
+        # Baseline = Hailo Model Zoo PRECOMPILED HEFs (vendor:hailo-model-zoo).
+        # Models come from the Model Zoo (reference) or EdgeFirst Studio; we do
+        # not compile our own HEFs.
         "backend": "hailort", "device": "hailo",
         "baseline_validator": "yolo-validator", "vendor": "hailo-model-zoo",
         "edgefirst_key": "rpi5-hailo8l",

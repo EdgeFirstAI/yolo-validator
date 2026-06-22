@@ -252,13 +252,18 @@ def edgefirst_canonical(session_id: str) -> dict:
             "postprocess": m.avg_output_ms,
             "e2e": e2e,
         }
-        # Store the realized pipelined throughput directly; benchmark_a.py's
-        # generic fps_pipeline derivation (1000/e2e) is skipped when this key
-        # is already present.
+        # Store the validation run's MEASURED throughput only. Do NOT fabricate
+        # it from 1000/e2e when the session lacks realized_fps_scalar (older
+        # profiler sessions, e.g. 1.3.2 detection runs, omit it): a 1000/e2e
+        # value is a serial per-frame estimate, not pipelined throughput, and
+        # silently substituting it makes EdgeFirst look un-pipelined (every
+        # "overlap" collapses to 1.0 by construction). Leave it absent so
+        # callers can tell "no throughput recorded" from a real number.
+        # NOTE: even when present this is the VALIDATION run's throughput, which
+        # is not the edgefirst-profiler benchmark — use the profiler bench
+        # (hailortcli / bench-internal) for authoritative performance numbers.
         if m.realized_fps is not None:
             result["fps_pipeline"] = m.realized_fps
-        elif e2e > 0:
-            result["fps_pipeline"] = 1000.0 / e2e
 
     return result
 

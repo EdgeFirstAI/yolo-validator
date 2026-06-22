@@ -40,7 +40,7 @@ The `--gt` `image_id` is the integer filename stem; non-numeric names fall back 
 
 ## Status
 
-v0.2.0 — **ONNX Runtime and TensorRT backends complete** (see [BENCHMARK.md](BENCHMARK.md)). TFLite / HailoRT / Ara2 backends are planned behind the `Backend` protocol.
+v0.2.0 — NumPy/OpenCV, ONNX Runtime, and TensorRT backends, with HailoRT detection and instance segmentation measured on-target (see [BENCHMARK.md](BENCHMARK.md)). New edge backends plug in behind the `Backend` protocol.
 
 ## License
 

@@ -14,7 +14,7 @@
       "task": "detect",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -40,7 +40,7 @@
       "task": "detect",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -66,7 +66,7 @@
       "task": "detect",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -92,7 +92,7 @@
       "task": "detect",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -113,38 +113,12 @@
       "n_images": 5000
     },
     {
-      "model": "yolov5nu",
-      "variant": "yolov5nu",
-      "task": "detect",
-      "precision": "INT8",
-      "quant": {
-        "method": "hailo-dfc",
-        "calib": "train2017/1024"
-      },
-      "lane": "baseline",
-      "validator": "yolo-validator",
-      "workflow": "vendor:hailo-dfc",
-      "engine": "hailo",
-      "box_ap": 0.33250437190753224,
-      "box_ap50": 0.48125018426162053,
-      "mask_ap": null,
-      "mask_ap50": null,
-      "fps_wall": 35.91182260763875,
-      "latency_ms": {
-        "pre": 7.508963527751621,
-        "inf": 19.93897525209468,
-        "post": 0.36107676113024356,
-        "e2e": 27.809015540976542
-      },
-      "n_images": 5000
-    },
-    {
       "model": "yolov5s",
       "variant": "yolov5s",
       "task": "detect",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -170,7 +144,7 @@
       "task": "detect",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -196,7 +170,7 @@
       "task": "segment",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -222,7 +196,7 @@
       "task": "segment",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",
@@ -248,7 +222,7 @@
       "task": "segment",
       "precision": "INT8",
       "quant": {
-        "method": "hailo-dfc",
+        "method": "hailo-model-zoo",
         "calib": null
       },
       "lane": "baseline",

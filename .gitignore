@@ -28,6 +28,9 @@ benchmarks/_coco_convert_tmp_*/
 # Reference-only, kept out of git until reproduced in this framework
 ULTRALYTICS_VALIDATION.md
 
+# Internal benchmarking/validation status ledger — not for publication
+STATUS.md
+
 reval.log
 reval.DONE
 reval.FAIL

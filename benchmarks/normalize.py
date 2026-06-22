@@ -11,7 +11,7 @@ Usage::
         --platform onnx-cpu --precision FP32
 
 For baseline runs produced by benchmark_a, the converter/quantizer is the
-Ultralytics export workflow; pass ``--vendor hailo-dfc`` (etc.) and
+Ultralytics export workflow; pass ``--vendor hailo-model-zoo`` (etc.) and
 ``--quant-method``/``--calib`` for vendor-quantized artifacts.
 """
 from __future__ import annotations
@@ -95,7 +95,7 @@ def main():
     p.add_argument("--quant-method", default="none")
     p.add_argument("--calib", default=None)
     p.add_argument("--vendor", default=None,
-                   help="silicon-vendor workflow id (e.g. hailo-dfc, nxp-eiq)")
+                   help="silicon-vendor workflow id (e.g. hailo-model-zoo, nxp-eiq)")
     a = p.parse_args()
     normalize(a.results_dir, a.platform, a.precision,
               a.quant_method, a.calib, a.vendor)

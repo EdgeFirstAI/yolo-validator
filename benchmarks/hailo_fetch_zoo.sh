@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Fetch official Hailo Model Zoo PRECOMPILED Hailo-8L HEFs for the rpi5-hailo8l
-# benchmark. These are the vendor's published artifacts — the primary "what the
-# vendor ships" baseline. Run our own compile (hailo_compile.py) only to fill
-# gaps the Model Zoo does not cover (e.g. yolov5nu, the Ultralytics anchor-free
-# v5 retrain, which the zoo does not publish).
+# benchmark. These are the vendor's published artifacts — the "what the vendor
+# ships" baseline. Reference HEFs come from the Model Zoo (this script) or from
+# EdgeFirst Studio; we do not compile our own.
 #
 # Run on the device (or anywhere) where the .hef will be evaluated. Files land
 # next to this repo's gitignored results tree.
