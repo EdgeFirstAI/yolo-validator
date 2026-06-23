@@ -73,16 +73,31 @@ def normalize(results_dir, platform, precision="FP32",
             validator, engine = CONFIG_LANE[key]
             rows.append(_row(variant, task, precision, quant,
                              validator, engine, vendor, cfg))
-    out = {"platform": platform, "host": host,
-           "eval": "crowd-as-normal", "rows": rows}
+
     os.makedirs("benchmarks/metrics", exist_ok=True)
     path = os.path.join("benchmarks/metrics", f"{platform}.json")
+
+    # Merge by precision: a platform file may hold several precisions (e.g. the
+    # onnx-cuda FP32 and FP16 lanes). This run owns one precision, so keep any
+    # existing rows of OTHER precisions and replace only this precision's rows.
+    # (Within a precision the results-dir must be complete — it fully replaces.)
+    kept = []
+    if os.path.exists(path):
+        prev = json.load(open(path, encoding="utf-8"))
+        host = host or prev.get("host")
+        kept = [r for r in prev.get("rows", []) if r.get("precision") != precision]
+    all_rows = kept + rows
+
+    out = {"platform": platform, "host": host,
+           "eval": "crowd-as-normal", "rows": all_rows}
     with open(path, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
         f.write("\n")
-    print(f"wrote {path}: {len(rows)} rows "
+    other = f" (+{len(kept)} rows kept from other precisions)" if kept else ""
+    print(f"wrote {path}: {len(all_rows)} rows{other}; this run added "
+          f"{len(rows)} {precision} rows "
           f"({len({r['variant'] for r in rows})} variants, "
-          f"{len({r['validator'] for r in rows})} validators, {precision})")
+          f"{len({r['validator'] for r in rows})} validators)")
     return path
 
 

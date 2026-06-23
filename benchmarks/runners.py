@@ -26,6 +26,7 @@ def run_ultralytics(
     imgsz: int = 640,
     pre_val_model=None,
     device: str | int = "cpu",
+    half: bool = False,
 ) -> dict:
     """Run Ultralytics val and collect predictions + speed.
 
@@ -36,6 +37,8 @@ def run_ultralytics(
         imgsz: input image size (default 640).
         pre_val_model: optional pre-configured YOLO model object to use instead of
                        loading from model_path (e.g. with end2end already set).
+        device: execution target — "cpu" or a CUDA index (e.g. 0).
+        half: run validation in FP16 (CUDA only; pairs with a half ONNX/PT model).
 
     Returns:
         dict with keys:
@@ -73,6 +76,7 @@ def run_ultralytics(
             plots=False,
             verbose=False,
             device=device,
+            half=half,
             project=tmp_project,
         )
 

@@ -76,12 +76,18 @@ def _has_end2end(pt_path: str) -> bool:
     return False
 
 
-def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic") -> str:
+def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic",
+                   half: bool = False) -> str:
     """Export .pt to .onnx with the given export_mode.
 
     export_mode:
       "classic"  — set Detect.end2end=False before export (anchor-grid output)
       "nmsfree"  — set Detect.end2end=True before export (E2E NMS-free output)
+    half:
+      False — FP32 graph (default).
+      True  — FP16 graph (weights + IO in float16). Requires a CUDA device for
+              the Ultralytics half export; run with --device cuda. The OnnxRuntime
+              backend feeds float16 input and upcasts outputs to float32.
 
     Idempotent: returns existing file if present.
 
@@ -97,13 +103,15 @@ def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic") 
 
     # Always include mode suffix so classic and nmsfree exports never collide,
     # and so pre-existing ONNX files from other sessions don't shadow fresh exports.
-    suffix = f"-{export_mode}"
+    # The -fp16 suffix keeps FP32 and FP16 graphs side by side (like .engine).
+    suffix = f"-{export_mode}" + ("-fp16" if half else "")
     onnx_path = output_dir / (pt_path.stem + suffix + ".onnx")
     if onnx_path.exists():
         print(f"[export] {onnx_path} already exists, skipping export")
         return str(onnx_path)
 
-    print(f"[export] exporting {pt_path} ({export_mode}) → {onnx_path} ...")
+    print(f"[export] exporting {pt_path} ({export_mode}, "
+          f"{'fp16' if half else 'fp32'}) → {onnx_path} ...")
     model = YOLO(str(pt_path))
     for m in model.model.modules():
         if isinstance(m, Detect):
@@ -112,7 +120,11 @@ def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic") 
             else:
                 m.end2end = True
             break
-    exported = model.export(format="onnx", imgsz=640)
+    export_kwargs = {"format": "onnx", "imgsz": 640}
+    if half:
+        # Ultralytics requires a CUDA device to export a half-precision graph.
+        export_kwargs.update(half=True, device=0)
+    exported = model.export(**export_kwargs)
     exported_path = Path(exported)
     if exported_path != onnx_path:
         exported_path.rename(onnx_path)
@@ -459,9 +471,15 @@ def run_benchmark_a(
         # the CPU (same as the CPU path) so the timing delta isolates inference speed.
         _ult_device: str | int = 0 if device == "cuda" else "cpu"
         _yv_provider = "cuda" if device == "cuda" else "cpu"
+        # FP16 is a CUDA-only ONNX lane: export a half graph and run both the
+        # Ultralytics and yolo-validator lanes in FP16 (the OnnxRuntime backend
+        # feeds float16 input and upcasts outputs). --half on cpu is rejected in
+        # main() since ORT CPU has no useful FP16 path.
+        use_half = half and device == "cuda"
 
         # ---- Export to ONNX ----
-        onnx_path = export_to_onnx(str(pt_path), str(models_dir), export_mode)
+        onnx_path = export_to_onnx(str(pt_path), str(models_dir), export_mode,
+                                   half=use_half)
 
         # ---- Config 1: ult-pt (skippable via --skip-ult-pt) ----
         if not skip_ult_pt:
@@ -470,7 +488,8 @@ def run_benchmark_a(
                 ult_model = _YOLO(str(pt_path))
                 _set_end2end(ult_model, export_mode)
                 ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
-                                          pre_val_model=ult_model, device=_ult_device)
+                                          pre_val_model=ult_model, device=_ult_device,
+                                          half=use_half)
                 ult_pt_metrics = canonical_eval(run_gt_json, ult_pt["predictions"], iou_types)
                 ult_pt_timing = rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"])
                 results_per_config["ult-pt"] = {
@@ -488,7 +507,8 @@ def run_benchmark_a(
         # ---- Config 2: ult-onnx ----
         print(f"\n[{label}] running ult-onnx ...")
         try:
-            ult_onnx = run_ultralytics(onnx_path, run_yaml, task, device=_ult_device)
+            ult_onnx = run_ultralytics(onnx_path, run_yaml, task, device=_ult_device,
+                                       half=use_half)
             ult_onnx_metrics = canonical_eval(run_gt_json, ult_onnx["predictions"], iou_types)
             ult_onnx_timing = rebin_ultralytics(ult_onnx["speed"], ult_onnx["n_images"])
             results_per_config["ult-onnx"] = {
@@ -647,7 +667,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "cuda: same 4 configs on GPU (Ultralytics device=0, ORT CUDAExecutionProvider). "
                         "tensorrt: ult-pt(cuda)/ult-engine/yv-tensorrt on a TRT engine.")
     p.add_argument("--half", action="store_true",
-                   help="Build FP16 TensorRT engines (device=tensorrt only).")
+                   help="FP16 precision. device=cuda: export+run a half ONNX graph "
+                        "(all 4 lanes in FP16). device=tensorrt: build FP16 engines. "
+                        "Not valid with device=cpu (ORT CPU has no useful FP16 path).")
     p.add_argument("--skip-ult-pt", action="store_true",
                    help="Skip the Ultralytics PyTorch reference lane. Use where "
                         "the TensorRT/ONNX engine is the deployment path (e.g. "
@@ -711,6 +733,11 @@ def _spawn_variant_worker(model_name: str, export_mode: str, args) -> int:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+
+    if args.half and args.device == "cpu":
+        parser.error("--half is not valid with --device cpu (ONNX Runtime CPU has "
+                     "no useful FP16 path). Use --device cuda for FP16 ONNX, or "
+                     "--device tensorrt for a FP16 engine.")
 
     # On device=tensorrt, isolate each variant in its own process (unless the
     # caller already narrowed to a single export mode, i.e. we ARE a worker, or

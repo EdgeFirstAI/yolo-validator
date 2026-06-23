@@ -48,9 +48,8 @@ def _fmt(x, nd=4):
     return "—" if x is None else f"{x:.{nd}f}"
 
 
-def _platform_summary(platform, data):
-    """One summary row dict for a platform's metrics."""
-    rows = data["rows"]
+def _platform_summary(platform, rows):
+    """One summary row dict for a platform's rows at a single precision."""
     variants = {}
     for r in rows:
         variants.setdefault((r["variant"], r["task"]), []).append(r)
@@ -91,11 +90,18 @@ def build_table():
     for fn in metrics:
         data = json.load(open(fn, encoding="utf-8"))
         p = data.get("platform")
-        if p in PLATFORMS:
-            summaries.append(_platform_summary(p, data))
-    # registry order for stable output
+        if p not in PLATFORMS:
+            continue
+        # A platform file may carry several precisions (e.g. onnx-cuda FP32+FP16);
+        # emit one summary row per precision rather than collapsing them.
+        by_precision = {}
+        for r in data["rows"]:
+            by_precision.setdefault(r["precision"], []).append(r)
+        for precision in sorted(by_precision):
+            summaries.append(_platform_summary(p, by_precision[precision]))
+    # registry order, then precision, for stable output
     order = list(PLATFORMS)
-    summaries.sort(key=lambda s: order.index(s["platform"]))
+    summaries.sort(key=lambda s: (order.index(s["platform"]), s["precision"]))
 
     lines = [
         "| Platform | precision | baseline | det | seg | yolov8n box | yolov8n-seg mask | proxy box Δ | proxy mask Δ | yolov8n FPS |",
