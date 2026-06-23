@@ -26,7 +26,9 @@ def run_ultralytics(
     imgsz: int = 640,
     pre_val_model=None,
     device: str | int = "cpu",
+    half: bool = False,
     batch: int = 1,
+    rect: bool = False,
 ) -> dict:
     """Run Ultralytics val and collect predictions + speed.
 
@@ -39,6 +41,13 @@ def run_ultralytics(
         imgsz: input image size (default 640).
         pre_val_model: optional pre-configured YOLO model object to use instead of
                        loading from model_path (e.g. with end2end already set).
+        device: execution target — "cpu" or a CUDA index (e.g. 0).
+        half: run validation in FP16 (CUDA only; pairs with a half ONNX/PT model).
+        batch: validation batch size. 1 is the parity baseline; >1 measures the
+               Ultralytics validator's batched throughput (PyTorch path batches
+               natively). The portable yolo-validator stays single-stream by design.
+        rect: rectangular (aspect-sorted) batches. False keeps the square 640
+              letterbox identical across batch sizes, isolating the batch effect.
 
     Returns:
         dict with keys:
@@ -73,11 +82,12 @@ def run_ultralytics(
             iou=0.7,
             max_det=300,
             imgsz=imgsz,
-            rect=False,
+            rect=rect,
             batch=batch,
             plots=False,
             verbose=False,
             device=device,
+            half=half,
             project=tmp_project,
         )
 

@@ -33,6 +33,9 @@ class OnnxRuntimeBackend:
         # the pipeline rejects batch_size>1 on a fixed batch==1 graph.
         self.input_batch = shape[0] if isinstance(shape[0], int) else None
         self.input_name = inp.name
+        # FP16 graphs (e.g. ONNX exported with half=True) want float16 input; the
+        # preprocessed tensor is always float32, so feed the dtype the graph declares.
+        self.input_dtype = np.float16 if "float16" in inp.type else np.float32
         outputs = self.session.get_outputs()
         inferred = "segment" if len(outputs) >= 2 else "detect"
         is_e2e = infer_e2e([o.shape for o in outputs], override=e2e)
@@ -40,5 +43,8 @@ class OnnxRuntimeBackend:
         self.spec = ModelSpec(input_w=w, input_h=h, task=task or inferred, e2e=is_e2e)
 
     def run(self, input_tensor: np.ndarray) -> tuple[list[np.ndarray], Optional[DeviceTiming]]:
-        outs = self.session.run(None, {self.input_name: input_tensor.astype(np.float32)})
-        return list(outs), None
+        outs = self.session.run(None, {self.input_name: input_tensor.astype(self.input_dtype)})
+        # Upcast FP16 outputs so the downstream NumPy/torch decode + mask pipeline
+        # (which assumes float32) is unchanged. No-op for FP32 graphs.
+        outs = [o.astype(np.float32) if o.dtype == np.float16 else o for o in outs]
+        return outs, None

@@ -90,13 +90,18 @@ def _has_end2end(pt_path: str) -> bool:
 
 
 def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic",
-                   dynamic: bool = False) -> str:
+                   dynamic: bool = False, half: bool = False) -> str:
     """Export .pt to .onnx with the given export_mode.
 
     export_mode:
       "classic"  — set Detect.end2end=False before export (anchor-grid output)
       "nmsfree"  — set Detect.end2end=True before export (E2E NMS-free output)
     ``dynamic=True`` exports a dynamic batch axis (required for batch_size>1).
+    half:
+      False — FP32 graph (default).
+      True  — FP16 graph (weights + IO in float16). Requires a CUDA device for
+              the Ultralytics half export; run with --device cuda. The OnnxRuntime
+              backend feeds float16 input and upcasts outputs to float32.
 
     Idempotent: returns existing file if present.
 
@@ -112,14 +117,17 @@ def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic",
 
     # Always include mode suffix so classic and nmsfree exports never collide,
     # and so pre-existing ONNX files from other sessions don't shadow fresh exports.
-    # A -dyn suffix keeps the dynamic-batch export separate from the static one.
-    suffix = f"-{export_mode}" + ("-dyn" if dynamic else "")
+    # A -dyn suffix keeps the dynamic-batch export separate from the static one;
+    # a -fp16 suffix keeps FP32 and FP16 graphs side by side (like .engine).
+    suffix = (f"-{export_mode}" + ("-dyn" if dynamic else "")
+              + ("-fp16" if half else ""))
     onnx_path = output_dir / (pt_path.stem + suffix + ".onnx")
     if onnx_path.exists():
         print(f"[export] {onnx_path} already exists, skipping export")
         return str(onnx_path)
 
-    print(f"[export] exporting {pt_path} ({export_mode}) → {onnx_path} ...")
+    print(f"[export] exporting {pt_path} ({export_mode}, "
+          f"{'fp16' if half else 'fp32'}) → {onnx_path} ...")
     model = YOLO(str(pt_path))
     for m in model.model.modules():
         if isinstance(m, Detect):
@@ -128,7 +136,11 @@ def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic",
             else:
                 m.end2end = True
             break
-    exported = model.export(format="onnx", imgsz=640, dynamic=dynamic)
+    export_kwargs = {"format": "onnx", "imgsz": 640, "dynamic": dynamic}
+    if half:
+        # Ultralytics requires a CUDA device to export a half-precision graph.
+        export_kwargs.update(half=True, device=0)
+    exported = model.export(**export_kwargs)
     exported_path = Path(exported)
     if exported_path != onnx_path:
         exported_path.rename(onnx_path)
@@ -542,7 +554,10 @@ def run_benchmark_a(
         #   cpu    : Ultralytics device="cpu", ORT CPUExecutionProvider.
         #   cuda   : Ultralytics device=0 (GPU), ORT CUDAExecutionProvider.
         #            Pre/postprocess stay on the CPU so the timing delta isolates
-        #            inference speed.
+        #            inference speed. --half exports a FP16 graph and runs both the
+        #            Ultralytics and yolo-validator lanes in FP16 (the OnnxRuntime
+        #            backend feeds float16 input and upcasts outputs). --half on cpu
+        #            is rejected in main() since ORT CPU has no useful FP16 path.
         #   coreml : the macOS Apple Silicon lane (FP16 deployment). ult-onnx runs
         #            on the CPU EP as the FP32 accuracy ANCHOR (the same .onnx the
         #            cpu/cuda anchors use — edge precision is FP16, but the anchor
@@ -561,11 +576,16 @@ def run_benchmark_a(
             _ult_device, _yv_provider = "cpu", "coreml"
         else:
             _ult_device, _yv_provider = "cpu", "cpu"
+        # FP16 is a CUDA-only ONNX lane: export a half graph and run both the
+        # Ultralytics and yolo-validator lanes in FP16. coreml has its own native
+        # FP16 path (.mlpackage + CoreML EP), and --half on cpu is rejected in
+        # main(), so use_half gates strictly on cuda.
+        use_half = half and device == "cuda"
 
-        # ---- Export to ONNX (FP32; reused by ult-onnx anchor + yv proxy lanes) ----
+        # ---- Export to ONNX (FP32 anchor + yv proxy lanes; FP16 only on cuda) ----
         # batch>1 needs a dynamic-batch ONNX (a static batch=1 graph rejects (N,...)).
         onnx_path = export_to_onnx(str(pt_path), str(models_dir), export_mode,
-                                   dynamic=(batch > 1))
+                                   dynamic=(batch > 1), half=use_half)
 
         # ---- Config 1: ult-pt (skippable via --skip-ult-pt; auto-skip on coreml) ----
         # On coreml the FP32 PyTorch lane is redundant with the onnx-cpu/cuda FP32
@@ -577,7 +597,7 @@ def run_benchmark_a(
                 _set_end2end(ult_model, export_mode)
                 ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
                                           pre_val_model=ult_model, device=_ult_device,
-                                          batch=batch)
+                                          batch=batch, half=use_half)
                 ult_pt_metrics = canonical_eval(run_gt_json, ult_pt["predictions"], iou_types)
                 ult_pt_timing = rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"])
                 results_per_config["ult-pt"] = {
@@ -595,7 +615,8 @@ def run_benchmark_a(
         # ---- Config 2: ult-onnx ----
         print(f"\n[{label}] running ult-onnx ...")
         try:
-            ult_onnx = run_ultralytics(onnx_path, run_yaml, task, device=_ult_device, batch=batch)
+            ult_onnx = run_ultralytics(onnx_path, run_yaml, task, device=_ult_device,
+                                       batch=batch, half=use_half)
             ult_onnx_metrics = canonical_eval(run_gt_json, ult_onnx["predictions"], iou_types)
             ult_onnx_timing = rebin_ultralytics(ult_onnx["speed"], ult_onnx["n_images"])
             results_per_config["ult-onnx"] = {
@@ -787,8 +808,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "ult-coreml (native FP16 .mlpackage on ANE), yv-torch/yv-numpy on "
                         "the ORT CoreML EP (FP16, ANE); ult-pt skipped.")
     p.add_argument("--half", action="store_true",
-                   help="Build FP16 TensorRT engines (device=tensorrt only). "
-                        "device=coreml always exports FP16 .mlpackage regardless.")
+                   help="FP16 precision. device=cuda: export+run a half ONNX graph "
+                        "(all 4 lanes in FP16). device=tensorrt: build FP16 engines. "
+                        "device=coreml always exports a FP16 .mlpackage regardless. "
+                        "Not valid with device=cpu (ORT CPU has no useful FP16 path).")
     p.add_argument("--batch", type=int, default=1, metavar="N",
                    help="Inference batch size. 1 (default) = single-stream latency "
                         "reference (matches the non-batched edgefirst-profiler). N>1 "
@@ -857,6 +880,11 @@ def _spawn_variant_worker(model_name: str, export_mode: str, args) -> int:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+
+    if args.half and args.device == "cpu":
+        parser.error("--half is not valid with --device cpu (ONNX Runtime CPU has "
+                     "no useful FP16 path). Use --device cuda for FP16 ONNX, or "
+                     "--device tensorrt for a FP16 engine.")
 
     # On device=tensorrt, isolate each variant in its own process (unless the
     # caller already narrowed to a single export mode, i.e. we ARE a worker, or
