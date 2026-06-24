@@ -1,0 +1,64 @@
+{
+  "platform": "imx95-neutron",
+  "host": {
+    "machine": "aarch64",
+    "node": "imx95-15x15-lpddr4x-frdm",
+    "system": "Linux-6.12.49-lts-next-gd2696d51bd89-aarch64-with-glibc2.41",
+    "device": "imx95-neutron"
+  },
+  "eval": "crowd-as-normal",
+  "rows": [
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.22496885656662047,
+      "box_ap50": 0.39770742963212585,
+      "mask_ap": 0.2330510065439879,
+      "mask_ap50": 0.39761216839650637,
+      "fps_wall": 0.9037847052777696,
+      "latency_ms": {
+        "pre": 37.70891514724353,
+        "inf": 54.40595807522768,
+        "post": 1014.1806139710825,
+        "e2e": 1106.2954871935538
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.3284617013291268,
+      "box_ap50": 0.48528253780524755,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 6.526526187181102,
+      "latency_ms": {
+        "pre": 44.728305976919366,
+        "inf": 42.6520334154251,
+        "post": 65.69057143798564,
+        "e2e": 153.0709108303301
+      },
+      "n_images": 5000
+    }
+  ]
+}

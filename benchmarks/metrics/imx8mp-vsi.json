@@ -1,0 +1,64 @@
+{
+  "platform": "imx8mp-vsi",
+  "host": {
+    "machine": "aarch64",
+    "node": "imx8mp-lpddr4-frdm",
+    "system": "Linux-6.12.49-lts-next-gd2696d51bd89-aarch64-with-glibc2.41",
+    "device": "imx8mp-vsi"
+  },
+  "eval": "crowd-as-normal",
+  "rows": [
+    {
+      "model": "yolov8n-seg",
+      "variant": "yolov8n-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "tflite",
+      "box_ap": 0.2257158100590524,
+      "box_ap50": 0.39845607021261914,
+      "mask_ap": 0.23387903145932634,
+      "mask_ap50": 0.3995692395813908,
+      "fps_wall": 1.4534815069892966,
+      "latency_ms": {
+        "pre": 28.34954282869585,
+        "inf": 96.15927835414186,
+        "post": 563.3862050358672,
+        "e2e": 687.8950262187049
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "ultralytics",
+      "engine": "tflite",
+      "box_ap": 0.32848142784494366,
+      "box_ap50": 0.4829500200486177,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 6.330291115980055,
+      "latency_ms": {
+        "pre": 27.865438048215584,
+        "inf": 74.98972099791281,
+        "post": 55.008074725186454,
+        "e2e": 157.86323377131484
+      },
+      "n_images": 5000
+    }
+  ]
+}

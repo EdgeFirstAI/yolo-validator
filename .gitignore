@@ -21,6 +21,10 @@ results_*.json
 results.json
 /build/
 /datasets/
+
+# Ultralytics TFLite export byproducts (host-side, regeneratable)
+*_saved_model/
+calibration_image_sample_data_*.npy
 benchmarks/_coco_shadow/
 benchmarks/results/
 benchmarks/_coco_convert_tmp_*/
