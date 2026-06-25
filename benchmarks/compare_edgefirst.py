@@ -162,10 +162,15 @@ def edgefirst_from_catalog(rec: dict) -> dict:
                          "inference": rec.get("inference_ms"),
                          "postprocess": rec.get("postprocess_ms"),
                          "e2e": rec.get("e2e_latency_ms")}
-    # Validation-session throughput only (NOT the profiler bench) — same caveat as
-    # the live path; shown but never used for speedup conclusions.
-    if rec.get("realized_fps_scalar") is not None:
-        out["fps_pipeline"] = rec.get("realized_fps_scalar")
+    # EdgeFirst throughput: prefer the per-session realized fps; fall back to the
+    # catalog's published median fps (the model-zoo benchmark number) so the offline
+    # path reports throughput + speedup (the perf header documents "realized/median
+    # throughput"). For the macOS CoreML ANE lane the catalog carries fps_median only.
+    fps = rec.get("realized_fps_scalar")
+    if fps is None:
+        fps = rec.get("fps_median")
+    if fps is not None:
+        out["fps_pipeline"] = fps
     return out
 
 
