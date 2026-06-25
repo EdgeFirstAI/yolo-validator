@@ -2,11 +2,14 @@
 """Re-binning of pipeline stage timings into canonical {preprocess, inference, postprocess, e2e}.
 
 Design rule (from design doc §5):
-  preprocess  → preprocess   (direct)
+  preprocess  → load_decode + preprocess (JPEG decode + letterbox/resize/normalize)
   inference   → inference    (direct)
   postprocess → decode + mask + encode (summed per-image, then stats)
-  e2e         → preprocess + inference + decode + mask + encode (summed per-image, then stats)
-  load_decode is excluded from the canonical vector.
+  e2e         → load_decode + preprocess + inference + decode + mask + encode
+  load_decode (JPEG decode via cv2.imread) is FOLDED INTO preprocess so the
+  reported `pre` reflects the true input cost — JPEG decode + letterbox — and is
+  comparable to the edgefirst-profiler's `pre` (which also includes decode). It
+  is NOT dropped: dropping it understated `pre` and `e2e` vs a fair end-to-end.
 
 encode covers output serialisation: D2H for the torch GPU mask tensor and
 RLE encoding via pycocotools. Including it in postprocess/e2e ensures
@@ -34,9 +37,11 @@ def rebin_frame(timings: dict[str, float], detail: bool = False) -> dict[str, fl
 
     Returns:
         dict with keys {preprocess, inference, postprocess, e2e} in ms.
-        load_decode is excluded from the canonical vector.
+        load_decode (JPEG decode) is folded into preprocess.
     """
-    pre = timings.get("preprocess", 0.0)
+    # pre = JPEG decode (load_decode) + letterbox/normalize (preprocess). Folding
+    # the decode in makes `pre` the honest input cost, on par with the profiler.
+    pre = timings.get("load_decode", 0.0) + timings.get("preprocess", 0.0)
     inf = timings.get("inference", 0.0)
     enc = timings.get("encode", 0.0)   # output serialisation: D2H + RLE encode
 

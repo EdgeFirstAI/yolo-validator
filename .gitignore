@@ -21,6 +21,10 @@ results_*.json
 results.json
 /build/
 /datasets/
+
+# Ultralytics TFLite export byproducts (host-side, regeneratable)
+*_saved_model/
+calibration_image_sample_data_*.npy
 benchmarks/_coco_shadow/
 benchmarks/results/
 benchmarks/_coco_convert_tmp_*/
@@ -30,6 +34,9 @@ ULTRALYTICS_VALIDATION.md
 
 # Internal benchmarking/validation status ledger — not for publication
 STATUS.md
+
+# Internal research notes (NXP INT8 findings) — not for publication
+NXP-INT8-RESEARCH.md
 
 reval.log
 reval.DONE

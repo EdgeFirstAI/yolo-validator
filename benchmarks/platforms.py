@@ -90,13 +90,17 @@ PLATFORMS = {
         "edgefirst_key": "rpi5-hailo8l",
     },
     "imx95-neutron": {
+        # Ultralytics full-integer INT8 TFLite (PTQ), recompiled to Neutron
+        # microcode (eIQ neutron-converter) and run via the Neutron delegate.
         "backend": "tflite", "device": "npu",
-        "baseline_validator": "yolo-validator", "vendor": "nxp-eiq",
+        "baseline_validator": "yolo-validator", "vendor": "nxp-neutron",
         "edgefirst_key": "imx95-neutron",
     },
     "imx8mp-vsi": {
+        # Ultralytics full-integer INT8 TFLite (PTQ), run directly via the
+        # VeriSilicon VX delegate on the i.MX 8M Plus NPU (no vendor re-quant).
         "backend": "tflite", "device": "npu",
-        "baseline_validator": "yolo-validator", "vendor": "nxp-vela",
+        "baseline_validator": "yolo-validator", "vendor": None,
         "edgefirst_key": "imx8mp-vsi",
     },
     "imx95-ara240": {
@@ -117,6 +121,7 @@ CONFIG_LANE = {
     "yv-numpy":    ("yolo-validator", "numpy"),
     "yv-tensorrt": ("yolo-validator", "tensorrt"),
     "yv-hailo":    ("yolo-validator", "hailo"),
+    "yv-tflite":   ("yolo-validator", "tflite"),
 }
 
 

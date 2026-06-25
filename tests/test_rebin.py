@@ -7,27 +7,29 @@ from benchmarks.rebin import rebin_frame, rebin_samples, rebin_ultralytics
 def test_rebin_frame_basic():
     timings = {"load_decode": 5.0, "preprocess": 2.0, "inference": 10.0, "decode": 1.5, "mask": 0.5}
     r = rebin_frame(timings)
-    assert r["preprocess"] == 2.0
+    assert r["preprocess"] == pytest.approx(7.0)     # load_decode + letterbox = 5 + 2
     assert r["inference"] == 10.0
     assert r["postprocess"] == pytest.approx(2.0)   # decode + mask = 1.5 + 0.5
-    assert r["e2e"] == pytest.approx(14.0)           # pre + inf + decode + mask
-    assert "load_decode" not in r
+    assert r["e2e"] == pytest.approx(19.0)           # decode + pre + inf + decode + mask
+    assert "load_decode" not in r                    # folded into preprocess, not a separate key
 
 
 def test_rebin_frame_no_mask():
     """Detect model: no mask stage — mask treated as 0."""
     timings = {"load_decode": 5.0, "preprocess": 2.0, "inference": 10.0, "decode": 1.5}
     r = rebin_frame(timings)
+    assert r["preprocess"] == pytest.approx(7.0)     # 5 + 2
     assert r["postprocess"] == pytest.approx(1.5)
-    assert r["e2e"] == pytest.approx(13.5)
+    assert r["e2e"] == pytest.approx(18.5)           # 7 + 10 + 1.5
 
 
-def test_rebin_frame_excludes_load_decode():
+def test_rebin_frame_includes_load_decode():
+    """JPEG decode is folded into preprocess (and therefore e2e), not dropped."""
     timings = {"load_decode": 99.0, "preprocess": 1.0, "inference": 5.0, "decode": 1.0}
     r = rebin_frame(timings)
-    assert "load_decode" not in r
-    # e2e should NOT include load_decode
-    assert r["e2e"] == pytest.approx(7.0)
+    assert "load_decode" not in r                    # folded into preprocess
+    assert r["preprocess"] == pytest.approx(100.0)   # 99 + 1
+    assert r["e2e"] == pytest.approx(106.0)          # 100 + 5 + 1
 
 
 def test_rebin_frame_empty_timings():
@@ -61,9 +63,10 @@ def test_rebin_samples_from_raw_pipeline_timings():
     # postprocess = decode + mask per frame, then mean
     # frame 0: post=2.0, frame 1: post=3.0 → mean=2.5
     assert stats["postprocess"].mean_ms == pytest.approx(2.5)
-    # e2e per frame: 14.0, 18.0 → mean=16.0
-    assert stats["e2e"].mean_ms == pytest.approx(16.0)
-    assert stats["preprocess"].mean_ms == pytest.approx(2.5)
+    # preprocess = load_decode + preprocess per frame: 7.0, 9.0 → mean=8.0
+    assert stats["preprocess"].mean_ms == pytest.approx(8.0)
+    # e2e per frame: 7+10+2=19.0, 9+12+3=24.0 → mean=21.5
+    assert stats["e2e"].mean_ms == pytest.approx(21.5)
     assert stats["inference"].mean_ms == pytest.approx(11.0)
 
 
