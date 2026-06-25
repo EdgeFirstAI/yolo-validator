@@ -74,6 +74,14 @@ def export_one(model: str, calib_yaml: Path, out_dir: Path) -> Path:
     pt = model if model.endswith(".pt") else f"{model}.pt"
     print(f"[export] {pt} → INT8 TFLite (calib {calib_yaml.name}) ...")
     yolo = YOLO(pt)
+    # Force the classic (anchor-grid + DFL) head: NMS-free yolo26/yolov10 default
+    # to an end-to-end head whose output our on-device decode does not handle, and
+    # the benchmark works with the classic-NMS variant only. No-op for yolov8/11.
+    from ultralytics.nn.modules import Detect
+    for m in yolo.model.modules():
+        if isinstance(m, Detect):
+            m.end2end = False
+            break
     # int8=True → full-integer PTQ; data yaml supplies the representative dataset;
     # fraction=1.0 uses every image in the calib split.
     out = yolo.export(format="tflite", int8=True, data=str(calib_yaml),

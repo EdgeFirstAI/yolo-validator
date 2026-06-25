@@ -35,6 +35,9 @@ ULTRALYTICS_VALIDATION.md
 # Internal benchmarking/validation status ledger — not for publication
 STATUS.md
 
+# Internal research notes (NXP INT8 findings) — not for publication
+NXP-INT8-RESEARCH.md
+
 reval.log
 reval.DONE
 reval.FAIL

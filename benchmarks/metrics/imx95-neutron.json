@@ -9,6 +9,214 @@
   "eval": "crowd-as-normal",
   "rows": [
     {
+      "model": "yolo11n-seg",
+      "variant": "yolo11n-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.02396030175618783,
+      "box_ap50": 0.06303281531982198,
+      "mask_ap": 0.026009051827406652,
+      "mask_ap50": 0.06331988711283831,
+      "fps_wall": 1.4013138659551594,
+      "latency_ms": {
+        "pre": 37.69383200344164,
+        "inf": 68.06063981787301,
+        "post": 607.7052337791538,
+        "e2e": 713.4597056004684
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo11n",
+      "variant": "yolo11n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.06382953416865843,
+      "box_ap50": 0.12748797382522747,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 4.759048941409524,
+      "latency_ms": {
+        "pre": 43.89478164066095,
+        "inf": 55.34207346970216,
+        "post": 110.73599215841386,
+        "e2e": 209.97284726877697
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo11s-seg",
+      "variant": "yolo11s-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.0,
+      "box_ap50": 0.0,
+      "mask_ap": 0.0001503947863140744,
+      "mask_ap50": 0.000375986965785186,
+      "fps_wall": 5.612351692885602,
+      "latency_ms": {
+        "pre": 42.727399288886225,
+        "inf": 111.36680055733305,
+        "post": 23.89632788270246,
+        "e2e": 177.99052772892173
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo11s",
+      "variant": "yolo11s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.0006574503275762415,
+      "box_ap50": 0.001702785615800958,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 5.571822906697461,
+      "latency_ms": {
+        "pre": 44.55506634663325,
+        "inf": 90.36980366220232,
+        "post": 44.404097838164304,
+        "e2e": 179.3289678469999
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26n-seg",
+      "variant": "yolo26n-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.0258880165309417,
+      "box_ap50": 0.07347410181379867,
+      "mask_ap": 0.03157199742273441,
+      "mask_ap50": 0.0836352295421514,
+      "fps_wall": 2.3301448732419034,
+      "latency_ms": {
+        "pre": 37.778686494776046,
+        "inf": 66.48384557266255,
+        "post": 324.7403707019286,
+        "e2e": 429.0029027693672
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.07503951151441689,
+      "box_ap50": 0.15939916910875548,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 5.953716976918409,
+      "latency_ms": {
+        "pre": 44.49225639807992,
+        "inf": 68.28166890162974,
+        "post": 55.04599344166927,
+        "e2e": 167.81991874137893
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26s-seg",
+      "variant": "yolo26s-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 3.86508242260366e-05,
+      "box_ap50": 0.00013764770035526723,
+      "mask_ap": 3.3631063704580776e-07,
+      "mask_ap50": 1.2501250125012502e-06,
+      "fps_wall": 4.4939680891793286,
+      "latency_ms": {
+        "pre": 42.48636174327694,
+        "inf": 162.10527563532816,
+        "post": 17.73416423141025,
+        "e2e": 222.32580161001533
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolo26s",
+      "variant": "yolo26s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.0003510349747155567,
+      "box_ap50": 0.000888131937934201,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 4.262358431687621,
+      "latency_ms": {
+        "pre": 44.89617441194132,
+        "inf": 167.73834465709515,
+        "post": 21.84188645053655,
+        "e2e": 234.476405519573
+      },
+      "n_images": 5000
+    },
+    {
       "model": "yolov8n-seg",
       "variant": "yolov8n-seg",
       "task": "segment",
@@ -57,6 +265,58 @@
         "inf": 42.6520334154251,
         "post": 65.69057143798564,
         "e2e": 153.0709108303301
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8s-seg",
+      "variant": "yolov8s-seg",
+      "task": "segment",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.25836133108740367,
+      "box_ap50": 0.45142497171113355,
+      "mask_ap": 0.27225857475852105,
+      "mask_ap50": 0.45989436595149413,
+      "fps_wall": 1.0774297001388877,
+      "latency_ms": {
+        "pre": 37.80123741994612,
+        "inf": 83.50828465097584,
+        "post": 806.662676202762,
+        "e2e": 927.972198273684
+      },
+      "n_images": 5000
+    },
+    {
+      "model": "yolov8s",
+      "variant": "yolov8s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "tflite-ptq",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-neutron",
+      "engine": "tflite",
+      "box_ap": 0.3967479105951124,
+      "box_ap50": 0.5743275101670574,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 5.864196851997185,
+      "latency_ms": {
+        "pre": 44.483780606789516,
+        "inf": 66.174888440012,
+        "post": 59.723912745388226,
+        "e2e": 170.38258179218974
       },
       "n_images": 5000
     }

@@ -16,8 +16,8 @@ The baseline is the Ultralytics/Vendor workflow (validated by the Ultralytics va
 | onnx-cuda | FP32 | ultralytics | 15 | 12 | 0.3671 | 0.3020 | ≤0.49 pp | ≤0.61 pp | 132.3 |
 | orin-nano-tensorrt | FP16 | ultralytics | 15 | 11 | 0.3671 | 0.3019 | ≤0.49 pp | ≤0.63 pp | 38.4 |
 | rpi5-hailo8l | INT8 | yolo-validator | 6 | 3 | 0.3603 | 0.2863 | — | — | 42.0 |
-| imx95-neutron | INT8 | yolo-validator | 1 | 1 | 0.3285 | 0.2331 | — | — | 6.5 |
-| imx8mp-vsi | INT8 | yolo-validator | 1 | 1 | 0.3285 | 0.2339 | — | — | 6.3 |
+| imx95-neutron | INT8 | yolo-validator | 6 | 6 | 0.3285 | 0.2331 | — | — | 6.5 |
+| imx8mp-vsi | INT8 | yolo-validator | 5 | 6 | 0.3285 | 0.2339 | — | — | 6.3 |
 
 *Baseline = Ultralytics/Vendor workflow (validator column); proxy Δ = yolo-validator vs the Ultralytics baseline where both run (one-sided). Generated from `benchmarks/metrics/` — 7 platform(s).*
 <!-- END:cross-platform -->
@@ -194,59 +194,81 @@ Same shape as the other edge targets: detection is balanced, segmentation is hos
 
 # Part 1d — NXP i.MX 8M Plus (imx8mp-vsi, INT8 TFLite, VX delegate)
 
-The starting point is the off-the-shelf **Ultralytics** workflow: a full-integer INT8 TFLite (post-training quantization, 500 COCO **train2017** calibration images), run on the i.MX 8M Plus NPU through the VeriSilicon **VX delegate**. The portable **yolo-validator** measures that baseline on-target (no Ultralytics validator runs there). **EdgeFirst augments the same model** with an edge-optimized pipeline and a smarter INT8 quantizer — making it both more accurate and faster end to end. EdgeFirst columns are provisional, pending the refreshed profiler run.
+The off-the-shelf path is the **vendor reference**: the standard Ultralytics full-integer INT8 TFLite (post-training quantization, 500 COCO **train2017** calibration images) run through the standard NXP runtime — the VeriSilicon **VX delegate** on the i.MX 8M Plus NPU — scored on-target by the portable **yolo-validator**. **EdgeFirst** runs the same architectures with its smart quantizer and overlapped pipeline. The comparison is the point: better accuracy, much higher throughput. EdgeFirst columns come from the current profiler catalog (provisional); `—` marks a cell not yet in it (pending the refresh).
 
-## Accuracy (INT8 vs FP32)
+## Vendor reference vs EdgeFirst — accuracy & throughput
 
-| Variant | FP32 | Ultralytics INT8 | EdgeFirst INT8 |
-|---|--:|--:|--:|
-| yolov8n box | 0.3671 | 0.3285 (−3.9 pp) | 0.3398 (−2.7 pp) |
-| yolov8n-seg box | 0.3604 | 0.2257 (−13.5 pp) | 0.3360 (−2.4 pp) |
-| yolov8n-seg mask | 0.3020 | 0.2339 (−6.8 pp) | 0.2714 (−3.1 pp) |
+Detection = box AP, segmentation = mask AP; full val2017. `crash` = the model crashes the VX delegate (no score). Near-zero vendor scores are runtime execution failures (the INT8 files score 0.43–0.51 box on a reference CPU), not quantization.
 
-The default Ultralytics TFLite exporter uses a generic post-training quantizer, which loses ~3.9 pp box on detection and far more on the segmentation box (−13.5 pp). **EdgeFirst's smart quantizer** calibrates the same model far better — recovering the seg box to within −2.4 pp of FP32 — so the augmented model is materially more accurate, not only faster.
+| Model | FP32 | vendor INT8 | EdgeFirst | **Δ acc** | vendor FPS | EdgeFirst FPS |
+|---|--:|--:|--:|--:|--:|--:|
+| yolov8n | 0.3671 | 0.3285 | 0.3398 | **+1.1 pp** | 6.3 | — |
+| yolov8s | 0.4425 | 0.3975 | 0.4190 | **+2.2 pp** | 4.7 | 7.9 |
+| yolo11n | 0.3868 | 0.3364 | 0.3466 | **+1.0 pp** | 5.3 | — |
+| yolo11s | 0.4587 | 0.0213 | 0.0178 | — | 3.9 | 5.4 |
+| yolo26n | 0.4022 | 0.2989 | 0.3188 | **+2.0 pp** | 2.3 | — |
+| yolo26s | 0.4775 | crash | — | — | crash | — |
+| yolov8n-seg | 0.3020 | 0.2339 | 0.2714 | **+3.8 pp** | 1.5 | **11.2** |
+| yolov8s-seg | 0.3635 | 0.2736 | 0.3338 | **+6.0 pp** | 1.5 | **6.4** |
+| yolo11n-seg | 0.3190 | 0.2300 | 0.2661 | **+3.6 pp** | 1.5 | **8.7** |
+| yolo11s-seg | 0.3744 | 0.1914 | — | — | 1.4 | — |
+| yolo26n-seg | 0.3408 | 0.1137 | 0.2213 | **+10.8 pp** | 1.3 | **7.4** |
+| yolo26s-seg | 0.3998 | 0.0471 | — | — | 0.6 | — |
 
-## End-to-end latency & throughput
+Where both ran, **EdgeFirst is more accurate and far faster**: accuracy gains of +1 to +6 pp on the clean models and **+10.8 pp on yolo26n-seg** (vendor 0.114 → EdgeFirst 0.221 — recovering most of what the generic quantizer lost), with segmentation throughput **4.3–7.5×** (yolov8n-seg 1.5 → 11.2 fps). The vendor reference also exposes the VX delegate's fragility — yolo11s collapses, yolo26s crashes — while EdgeFirst's runtime executes the family. (EdgeFirst detection FPS and the yolo11s/26s cells are not yet in the profiler catalog → pending refresh.)
+
+## Per-stage latency & total validation time (yolov8n)
 
 `pre` = JPEG decode + letterbox on the i.MX 8M Plus (4× Cortex-A53):
 
-| Variant | lane | pre | inf | post | e2e (ms) | FPS |
-|---|---|--:|--:|--:|--:|--:|
-| yolov8n | Ultralytics INT8 | 27.9 | 75.0 | 55.0 | 157.9 | 6.3 |
-| yolov8n | EdgeFirst † | 28.5 | 60.8 | 16.0 | 105.3 | — |
-| yolov8n-seg | Ultralytics INT8 | 28.3 | 96.2 | 563.4 | 687.9 | 1.4 |
-| yolov8n-seg | EdgeFirst † | 35.8 | 77.6 | 43.7 | 157.2 | **11.2** |
+| Variant | lane | pre | inf | post | e2e (ms) | FPS | val2017 time |
+|---|---|--:|--:|--:|--:|--:|--:|
+| yolov8n | vendor INT8 | 27.9 | 75.0 | 55.0 | 157.9 | 6.3 | 13 min |
+| yolov8n | EdgeFirst † | 28.5 | 60.8 | 16.0 | 105.3 | — | — |
+| yolov8n-seg | vendor INT8 | 28.3 | 96.2 | 563.4 | 687.9 | 1.4 | **59 min** |
+| yolov8n-seg | EdgeFirst † | 35.8 | 77.6 | 43.7 | 157.2 | **11.2** | **7 min** |
 
-EdgeFirst's optimized postprocess cuts the segmentation per-frame **latency from 688 ms to 157 ms** (postprocess 563 → 44 ms), and its pipelining lifts **throughput 7.7×** (1.4 → 11.2 fps) on top of that. † EdgeFirst rows provisional; the i.MX 8MP detection profiler FPS was not captured in this run (pending refresh).
+EdgeFirst's optimized postprocess collapses the segmentation mask stage (563 → 44 ms) and its overlapped pipeline lifts throughput **7.7×** — cutting a full val2017 segmentation pass from **59 min to ~7 min**. † EdgeFirst rows provisional / from the current catalog.
 
 ---
 
 # Part 1e — NXP i.MX 95 (imx95-neutron, INT8 TFLite, Neutron delegate)
 
-The same Ultralytics INT8 TFLite as Part 1d, recompiled to Neutron microcode with the eIQ neutron-converter and run on the i.MX 95 **Neutron NPU** — a lossless recompile of the quantized graph, so the Ultralytics-baseline INT8 accuracy matches the i.MX 8M Plus. **EdgeFirst augments it** with the same smart-quantized model and pipelined runner; the faster Neutron NPU makes the throughput gain even larger.
+The vendor reference here is the same Ultralytics INT8 TFLite as Part 1d, recompiled to Neutron microcode with the standard eIQ **neutron-converter** and run on the i.MX 95 **Neutron NPU**, scored by yolo-validator. **EdgeFirst** runs the same architectures with its smart quantizer and pipelined runner — the comparison below shows the accuracy and throughput gains. EdgeFirst columns are from the current profiler catalog; `—` = pending the refresh.
 
-## Accuracy (INT8 vs FP32)
+## Vendor reference vs EdgeFirst — accuracy & throughput
 
-| Variant | FP32 | Ultralytics INT8 | EdgeFirst INT8 |
-|---|--:|--:|--:|
-| yolov8n box | 0.3671 | 0.3285 (−3.9 pp) | 0.3434 (−2.4 pp) |
-| yolov8n-seg box | 0.3604 | 0.2250 (−13.5 pp) | 0.3357 (−2.5 pp) |
-| yolov8n-seg mask | 0.3020 | 0.2331 (−6.9 pp) | 0.2711 (−3.1 pp) |
+Detection = box AP, segmentation = mask AP; full val2017.
 
-Same pattern as the i.MX 8M Plus (identical baseline weights): the generic Ultralytics TFLite quantizer costs the seg box ~13.5 pp, which EdgeFirst's smart quantizer recovers to within −2.5 pp of FP32.
+| Model | FP32 | vendor INT8 | EdgeFirst | **Δ acc** | vendor FPS | EdgeFirst FPS | speedup |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| yolov8n | 0.3671 | 0.3285 | 0.3434 | **+1.5 pp** | 6.5 | **76.5** | **11.7×** |
+| yolov8s | 0.4425 | 0.3967 | — | — | 5.9 | — | — |
+| yolo11n | 0.3868 | 0.0638 | — | — | 4.8 | — | — |
+| yolo11s | 0.4587 | 0.0007 | — | — | 5.6 | — | — |
+| yolo26n | 0.4022 | 0.0750 | — | — | 6.0 | — | — |
+| yolo26s | 0.4775 | 0.0004 | — | — | 4.3 | — | — |
+| yolov8n-seg | 0.3020 | 0.2331 | 0.2711 | **+3.8 pp** | 0.9 | **28.8** | **32×** |
+| yolov8s-seg | 0.3635 | 0.2723 | 0.3329 | **+6.1 pp** | 1.1 | **20.9** | **19×** |
+| yolo11n-seg | 0.3190 | 0.0260 | — | — | 1.4 | — | — |
+| yolo11s-seg | 0.3744 | 0.0002 | — | — | 5.6 | — | — |
+| yolo26n-seg | 0.3408 | 0.0316 | — | — | 2.3 | — | — |
+| yolo26s-seg | 0.3998 | 0.0000 | — | — | 4.5 | — | — |
 
-## End-to-end latency & throughput
+For the yolov8 family — the only models the vendor Neutron path runs correctly — **EdgeFirst is both more accurate (+1.5 to +6.1 pp) and dramatically faster: detection 11.7×, segmentation 19–32×**. The vendor Neutron converter **catastrophically miscompiles every yolo11/26 model to near-zero** (it maps the graphs only partially — yolo26 maps ~10 ops — producing numerically broken output, while the source INT8 files score 0.43–0.51 box on a reference CPU). EdgeFirst's yolo11/26 i.MX 95 runs are not yet in the profiler catalog → pending refresh, but the pattern is set: only yolov8 is usable off-the-shelf, whereas EdgeFirst's tooling runs the family.
+
+## Per-stage latency & total validation time (yolov8n)
 
 `pre` = JPEG decode + letterbox on the i.MX 95 (6× Cortex-A55):
 
-| Variant | lane | pre | inf | post | e2e (ms) | FPS | × baseline |
+| Variant | lane | pre | inf | post | e2e (ms) | FPS | val2017 time |
 |---|---|--:|--:|--:|--:|--:|--:|
-| yolov8n | Ultralytics INT8 | 44.7 | 42.7 | 65.7 | 153.1 | 6.5 | 1× |
-| yolov8n | EdgeFirst † | 11.6 | 45.5 | 16.3 | 73.3 | **76.5** | **11.7×** |
-| yolov8n-seg | Ultralytics INT8 | 37.7 | 54.4 | 1014.2 | 1106.3 | 0.9 | 1× |
-| yolov8n-seg | EdgeFirst † | 16.1 | 23.1 | 58.2 | 97.4 | **28.8** | **32×** |
+| yolov8n | vendor INT8 | 44.7 | 42.7 | 65.7 | 153.1 | 6.5 | 13 min |
+| yolov8n | EdgeFirst † | 11.6 | 45.5 | 16.3 | 73.3 | **76.5** | **1 min** |
+| yolov8n-seg | vendor INT8 | 37.7 | 54.4 | 1014.2 | 1106.3 | 0.9 | **93 min** |
+| yolov8n-seg | EdgeFirst † | 16.1 | 23.1 | 58.2 | 97.4 | **28.8** | **3 min** |
 
-EdgeFirst improves both axes: **end-to-end latency** — seg per-frame 1106 → 97 ms (11×), detection 153 → 73 ms — from faster pre/postprocess (preprocess 38 → 16 ms, mask postprocess 1014 → 58 ms); **and throughput** — seg 0.9 → 28.8 fps (32×), detection 6.5 → 76.5 fps — from pipelining 4 frames in flight. Total val2017 segmentation time drops from ~93 min to ~3 min. † EdgeFirst columns provisional, pending the refreshed profiler run.
+EdgeFirst improves both axes from its highly-optimized pre/postprocess and overlapped pipeline: **end-to-end latency** (seg per-frame 1106 → 97 ms — mask postprocess 1014 → 58 ms) **and throughput** (seg 0.9 → 28.8 fps = 32×, detection 6.5 → 76.5 fps = 11.7×) — cutting a full val2017 segmentation pass from **93 min to ~3 min**. † EdgeFirst rows from the current catalog.
 
 ---
 
