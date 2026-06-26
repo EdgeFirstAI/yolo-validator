@@ -147,41 +147,60 @@ def run(tflite_path, model, coco_val, gt, out_dir, device_label, delegate,
         interp.invoke()
         raw = [(_dequant(interp.get_tensor(o["index"]), o)) for o in outs]
         t2 = time.perf_counter()
-        ch = 116 if seg else 84
-        det_t = next(o for o in raw if ch in o.shape)
-        head = _orient_head(det_t, ch)               # (N, ch)
-        boxes_xywh, scores = head[:, :4], head[:, 4:84]
-        coeffs = head[:, 84:116] if seg else None
-        # auto-detect normalized vs pixel box coords
-        if boxes_xywh.size and float(boxes_xywh.max()) <= 1.5:
-            boxes_xywh = boxes_xywh * imgsz
-        cx, cy, w, h = boxes_xywh.T
-        xyxy = np.stack([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], 1)
-        flat = scores.reshape(-1)
-        keep = np.nonzero(flat > score_th)[0]
-        if keep.size:
-            if keep.size > top_k:
-                keep = keep[np.argpartition(flat[keep], -top_k)[-top_k:]]
-            nc = scores.shape[1]
-            anc, cl, sc = keep // nc, keep % nc, flat[keep]
-            box_lb = xyxy[anc]
-            idx = nms_class_aware(box_lb, sc, cl, iou)[:max_det]
-            box_lb = box_lb[idx]
-            cls = cl[idx].astype(np.int64)
-            sc = sc[idx]
-            if seg:
-                proto = next(o[0] for o in raw if o.ndim == 4 and 32 in o.shape)
-                proto = proto.transpose(2, 0, 1) if proto.shape[-1] == 32 else proto
-                det = Detections(boxes=unletterbox_boxes(box_lb, lb), scores=sc,
-                                 classes=cls, coeffs=coeffs[anc][idx],
-                                 protos=proto[None].astype(np.float32), boxes_lb=box_lb)
-                masks = materialize_masks_numpy(det.protos, det.coeffs, det.boxes_lb,
-                                                lb, imgsz, imgsz) if len(sc) else []
-                preds.extend(detections_to_coco(image_id, det, class_map, masks))
-            else:
-                det = Detections(boxes=unletterbox_boxes(box_lb, lb), scores=sc,
-                                 classes=cls)
+        # end2end (NMS-free) head emits a single [1, N, 6] = [x1,y1,x2,y2,score,class]
+        # tensor (boxes normalized in letterbox space, already top-k/NMS-free): decode
+        # directly, no class-aware NMS. Classic head keeps the [1, ch, anchors] grid.
+        e2e_t = None if seg else next(
+            (o for o in raw if o.ndim == 3 and o.shape[-1] == 6), None)
+        if e2e_t is not None:
+            arr = e2e_t[0]                               # (N, 6)
+            xyxy = arr[:, :4].astype(np.float32)
+            sc = arr[:, 4].astype(np.float32)
+            cls = np.rint(arr[:, 5]).astype(np.int64)
+            if xyxy.size and float(xyxy.max()) <= 1.5:   # normalized -> pixel
+                xyxy = xyxy * imgsz
+            keep = np.nonzero(sc > score_th)[0]
+            keep = keep[np.argsort(-sc[keep])][:max_det]
+            if keep.size:
+                det = Detections(boxes=unletterbox_boxes(xyxy[keep], lb),
+                                 scores=sc[keep], classes=cls[keep])
                 preds.extend(detections_to_coco(image_id, det, class_map, None))
+        else:
+            ch = 116 if seg else 84
+            det_t = next(o for o in raw if ch in o.shape)
+            head = _orient_head(det_t, ch)               # (N, ch)
+            boxes_xywh, scores = head[:, :4], head[:, 4:84]
+            coeffs = head[:, 84:116] if seg else None
+            # auto-detect normalized vs pixel box coords
+            if boxes_xywh.size and float(boxes_xywh.max()) <= 1.5:
+                boxes_xywh = boxes_xywh * imgsz
+            cx, cy, w, h = boxes_xywh.T
+            xyxy = np.stack([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], 1)
+            flat = scores.reshape(-1)
+            keep = np.nonzero(flat > score_th)[0]
+            if keep.size:
+                if keep.size > top_k:
+                    keep = keep[np.argpartition(flat[keep], -top_k)[-top_k:]]
+                nc = scores.shape[1]
+                anc, cl, sc = keep // nc, keep % nc, flat[keep]
+                box_lb = xyxy[anc]
+                idx = nms_class_aware(box_lb, sc, cl, iou)[:max_det]
+                box_lb = box_lb[idx]
+                cls = cl[idx].astype(np.int64)
+                sc = sc[idx]
+                if seg:
+                    proto = next(o[0] for o in raw if o.ndim == 4 and 32 in o.shape)
+                    proto = proto.transpose(2, 0, 1) if proto.shape[-1] == 32 else proto
+                    det = Detections(boxes=unletterbox_boxes(box_lb, lb), scores=sc,
+                                     classes=cls, coeffs=coeffs[anc][idx],
+                                     protos=proto[None].astype(np.float32), boxes_lb=box_lb)
+                    masks = materialize_masks_numpy(det.protos, det.coeffs, det.boxes_lb,
+                                                    lb, imgsz, imgsz) if len(sc) else []
+                    preds.extend(detections_to_coco(image_id, det, class_map, masks))
+                else:
+                    det = Detections(boxes=unletterbox_boxes(box_lb, lb), scores=sc,
+                                     classes=cls)
+                    preds.extend(detections_to_coco(image_id, det, class_map, None))
         t3 = time.perf_counter()
         t_pre += t1 - t0; t_inf += t2 - t1; t_post += t3 - t2
         if (i + 1) % 500 == 0:
