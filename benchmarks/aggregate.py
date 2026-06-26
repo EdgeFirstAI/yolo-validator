@@ -96,6 +96,11 @@ def build_table():
         # emit one summary row per precision rather than collapsing them.
         by_precision = {}
         for r in data["rows"]:
+            # EdgeFirst standardizes on the classical (end2end=False) head; the
+            # end2end (NMS-free) variants are excluded from the summary (see
+            # YOLO26.md for the head-to-head that justifies this).
+            if "-nmsfree" in r["variant"]:
+                continue
             by_precision.setdefault(r["precision"], []).append(r)
         for precision in sorted(by_precision):
             summaries.append(_platform_summary(p, by_precision[precision]))

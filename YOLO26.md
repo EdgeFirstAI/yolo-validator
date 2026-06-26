@@ -1,6 +1,6 @@
 # YOLO26 end-to-end (NMS-free) vs classical-NMS under FP32 / FP16 / INT8
 
-This document characterizes the YOLO26 detection head in its two forms — the native end-to-end (NMS-free) head and the classical anchor-grid head that needs class-aware NMS — across FP32, FP16, and the INT8 quantization variants, measured locally on the full COCO val2017 (5000 images). It documents what works, what does not, and the measured accuracy (mAP) and latency. The performance-vs-accuracy conclusion is intentionally deferred pending a separate throughput study.
+This document characterizes the YOLO26 detection head in its two forms — the native end-to-end (NMS-free) head and the classical anchor-grid head that needs class-aware NMS — across FP32, FP16, and the INT8 quantization variants, measured locally on the full COCO val2017 (5000 images). It documents what works, what does not, and the measured accuracy (mAP) and latency. The bottom line for edge deployment: the classical head is more accurate at every precision, no slower, and quantizes far better, so EdgeFirst standardizes on the classical (`end2end=False`) head — this document is the evidence behind that choice.
 
 ## Scope and platform
 
@@ -69,7 +69,13 @@ Practical takeaway for edge: NPU delegates require full-integer (int8-activation
 
 ## Conclusion
 
-Deferred. Data so far: classical ≥ end-to-end on accuracy at every precision (marginally at FP32/FP16/dynamic, decisively under full-activation INT8), and the two heads are at parity on CPU latency (end-to-end shows no speed advantage here). The "an optimized classical NMS beats end-to-end on throughput as well" claim — most relevant on GPU, where NMS is a synchronization bottleneck — is the designated follow-up and is not evaluated in this CPU/TFLite study.
+For edge deployment the end-to-end (NMS-free) head offers no benefit over the classical head, and a clear disadvantage under quantization:
+
+- **Accuracy:** classical ≥ end-to-end at every precision — marginally at FP32/FP16/dynamic-range (+0.6–0.9 pp), decisively under full-activation INT8 (+34 pp; classical 0.351 vs end-to-end 0.011).
+- **Quantization:** the regime edge NPU delegates require — full-integer (int8-activation) — is exactly where the end-to-end head collapses (97% AP loss) and the classical head holds (−5 pp). The classical head quantizes far better.
+- **Performance:** at matched, working precisions the two heads are within ~1% on CPU inference; the classical head's class-aware NMS adds only ~0.3–2.8 ms, so it is no slower in practice on the edge targets.
+
+This justifies EdgeFirst standardizing on the classical (`end2end=False`) head for edge. This study scopes CPU/TFLite on the edge-relevant targets; the one remaining open question — whether end-to-end's NMS-free design wins on **high-throughput GPU server** inference, where NMS is a batched synchronization bottleneck — is outside the edge focus and not evaluated here.
 
 ## Reproduction
 
