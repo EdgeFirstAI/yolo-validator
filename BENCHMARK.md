@@ -4,7 +4,7 @@ This document shows how the **EdgeFirst** stack augments the Ultralytics baselin
 
 All accuracy is COCO val2017 (5000 images), one canonical pycocotools re-score per config. **iscrowd filtering is not currently supported** — every annotation is scored as a normal target, matching how the EdgeFirst stack validates, so the deltas below are convention-matched. Host: RTX 4060, i9-13900F, Ubuntu 24.04, torch 2.6.0+cu124 / ultralytics 8.4.68 / onnxruntime-gpu 1.21.0. Parity: `conf=0.001 iou=0.7 max_det=300 imgsz=640 rect=False batch=1`.
 
-**YOLO26 head:** EdgeFirst standardizes on the classical (`end2end=False`) head, and every EdgeFirst comparison row below uses it. Two places still show the end-to-end (NMS-free) head: Part 2 (proxy fidelity) lists it to demonstrate the yolo-validator proxy tracks the reference on *both* heads, and the macOS ANE lane in Part 1f was run with it in error (flagged there, pending a classical re-run). The end-to-end head is excluded for edge because it is no more accurate or faster and quantizes far worse — it collapses under full-integer INT8 while the classical head holds. The full FP32/FP16/INT8 head-to-head proving this is in [YOLO26.md](YOLO26.md).
+**YOLO26 head:** EdgeFirst standardizes on the classical (`end2end=False`) head, and every EdgeFirst comparison row below uses it. One place still shows the end-to-end (NMS-free) head: Part 2 (proxy fidelity) lists it to demonstrate the yolo-validator proxy tracks the reference on *both* heads. The end-to-end head is excluded for edge because it is no more accurate or faster and quantizes far worse — it collapses under full-integer INT8 while the classical head holds. The full FP32/FP16/INT8 head-to-head proving this is in [YOLO26.md](YOLO26.md).
 
 ## Cross-platform summary
 
@@ -17,8 +17,8 @@ The baseline is the Ultralytics/Vendor workflow (validated by the Ultralytics va
 | onnx-cuda | FP16 | ultralytics | 12 | 9 | 0.3669 | 0.3016 | ≤0.51 pp | ≤0.59 pp | 154.9 |
 | onnx-cuda | FP32 | ultralytics | 12 | 9 | 0.3671 | 0.3020 | ≤0.49 pp | ≤0.61 pp | 132.3 |
 | orin-nano-tensorrt | FP16 | ultralytics | 12 | 8 | 0.3671 | 0.3019 | ≤0.49 pp | ≤0.63 pp | 38.4 |
-| macos-onnx-coreml | FP16 | ultralytics | 6 | 4 | 0.3672 | 0.3018 | ≤0.82 pp | ≤0.92 pp | 62.0 |
-| macos-onnx-coreml | FP32 | ultralytics | 6 | 4 | 0.3670 | 0.3018 | — | — | 25.4 |
+| macos-onnx-coreml | FP16 | ultralytics | 8 | 7 | 0.3672 | 0.3018 | ≤0.82 pp | ≤0.92 pp | 62.0 |
+| macos-onnx-coreml | FP32 | ultralytics | 8 | 7 | 0.3670 | 0.3018 | — | — | 25.4 |
 | rpi5-hailo8l | INT8 | yolo-validator | 6 | 3 | 0.3603 | 0.2863 | — | — | 42.0 |
 | imx95-neutron | INT8 | yolo-validator | 6 | 6 | 0.3285 | 0.2331 | — | — | 6.5 |
 | imx8mp-vsi | INT8 | yolo-validator | 5 | 6 | 0.3285 | 0.2339 | — | — | 6.3 |
@@ -266,7 +266,7 @@ EdgeFirst improves both axes from its highly-optimized pre/postprocess and overl
 
 # Part 1f — EdgeFirst on Apple M2 Max (macos-onnx-coreml, CoreML ANE, FP16)
 
-The macOS lane runs **both sides FP16 on the Apple M2 Max Neural Engine** (CoreML), so hardware *and* runtime are matched: EdgeFirst (ONNX Runtime CoreML EP → ANE) vs the **Ultralytics validator running natively on the same ANE** — a `.mlpackage` exported `half=True`, which coremltools dispatches to `CPU_AND_NE`. The model set is exactly the 15 variants EdgeFirst publishes for `macos-onnx-coreml-ane` (8 detect / 7 segment). **Known issue — yolo26 on this lane was run with the NMS-free (`end2end=True`) head on both sides (reference and EdgeFirst), the only platform here that did so. This is inconsistent with EdgeFirst's `end2end=False` standard (every other platform uses the classical head) and is pending a re-run with the classical yolo26 export; the yolo26 ANE numbers below are NMS-free and are not comparable to the classical yolo26 rows on the other platforms — see [YOLO26.md](YOLO26.md).** EdgeFirst AP is the published model-zoo FP16 number; the FP16 reference ≈ its FP32 ONNX anchor to ≤ 0.1 pp (both recorded in `benchmarks/metrics/macos-onnx-coreml.json`). EdgeFirst FPS is the published median (pipelined) throughput; reference FPS is single-stream wall-clock. speedup = EdgeFirst FPS ÷ Ultralytics FPS<sub>wall</sub>. Host: Apple M2 Max, macOS, ultralytics 8.4.75 / onnxruntime 1.27.0 (CoreML EP) / torch 2.12.1. Parity: `conf=0.001 iou=0.7 max_det=300 imgsz=640 rect=False batch=1`.
+The macOS lane runs **both sides FP16 on the Apple M2 Max Neural Engine** (CoreML), so hardware *and* runtime are matched: EdgeFirst (ONNX Runtime CoreML EP → ANE) vs the **Ultralytics validator running natively on the same ANE** — a `.mlpackage` exported `half=True`, which coremltools dispatches to `CPU_AND_NE`. The model set is exactly the 15 variants EdgeFirst publishes for `macos-onnx-coreml-ane` (8 detect / 7 segment). yolo26 uses the **classical (`end2end=False`) head** EdgeFirst standardizes on, matching every other platform — verified from the cached profiler artifacts (EdgeFirst's ANE yolo26 ONNX are classical-shaped, `[1,84,8400]` detect / `[1,116,8400]`+proto segment, and their AP matches EdgeFirst's x86 classical exactly: ANE yolo26n det 39.68 ≡ x86 39.69, yolo26s 47.12 ≡ 47.12) — see [YOLO26.md](YOLO26.md). EdgeFirst AP is the published model-zoo FP16 number; the FP16 reference ≈ its FP32 ONNX anchor to ≤ 0.1 pp (both recorded in `benchmarks/metrics/macos-onnx-coreml.json`). EdgeFirst FPS is the published median (pipelined) throughput; reference FPS is single-stream wall-clock. speedup = EdgeFirst FPS ÷ Ultralytics FPS<sub>wall</sub>. Host: Apple M2 Max, macOS, ultralytics 8.4.75 / onnxruntime 1.27.0 (CoreML EP) / torch 2.12.1. Parity: `conf=0.001 iou=0.7 max_det=300 imgsz=640 rect=False batch=1`.
 
 ## Detection
 
@@ -278,10 +278,10 @@ The macOS lane runs **both sides FP16 on the Apple M2 Max Neural Engine** (CoreM
 | yolov8s | 0.4425 | 0.4322 | **−0.0103** | 60 | 327 | 5.5× |
 | yolo11n | 0.3866 | 0.3782 | **−0.0084** | 63 | 720 | 11.5× |
 | yolo11s | 0.4584 | 0.4488 | **−0.0096** | 58 | 329 | 5.7× |
-| yolo26n | 0.3954 | 0.3968 | **+0.0014** | 70 | 746 | 10.7× |
-| yolo26s | 0.4684 | 0.4712 | **+0.0028** | 63 | 310 | 4.9× |
+| yolo26n | 0.4020 | 0.3968 | **−0.0052** | 66 | 746 | 11.2× |
+| yolo26s | 0.4770 | 0.4712 | **−0.0058** | 61 | 310 | 5.1× |
 
-EdgeFirst runs **4.9–13.2×** the single-stream throughput at a **≤ 1.1 pp** box-AP cost. The yolo26 rows here are the NMS-free head on both sides (see the known issue above) and so are not comparable to the classical yolo26 numbers elsewhere; a classical re-run is pending.
+EdgeFirst runs **5.1–13.2×** the single-stream throughput at a **≤ 1.1 pp** box-AP cost. All YOLO26 rows are the classical (`end2end=False`) head EdgeFirst standardizes on — box Δ −0.5 to −0.6 pp, matching the x86 classical pattern (the NMS-free head it replaced gave a misleading near-zero delta against an NMS-free reference; see [YOLO26.md](YOLO26.md)).
 
 ## Segmentation
 
@@ -291,11 +291,11 @@ EdgeFirst runs **4.9–13.2×** the single-stream throughput at a **≤ 1.1 pp**
 | yolov8m-seg | 0.4892 | 0.4722 | **−0.0170** | 0.4023 | 0.3710 | **−0.0313** | 9.2 | 111 | 12.1× |
 | yolo11s-seg | 0.4553 | 0.4411 | **−0.0142** | 0.3738 | 0.3489 | **−0.0249** | 9.0 | 254 | 28.3× |
 | yolo11m-seg | 0.5046 | 0.4877 | **−0.0169** | 0.4132 | — | — | 9.8 | 102 | 10.4× |
-| yolo26n-seg | 0.3889 | 0.3913 | **+0.0024** | 0.3334 | 0.3247 | **−0.0087** | 10.1 | 458 | 45.2× |
-| yolo26s-seg | 0.4649 | 0.4632 | **−0.0017** | 0.3946 | 0.3787 | **−0.0159** | 11.1 | 217 | 19.5× |
-| yolo26m-seg | 0.5128 | 0.5024 | **−0.0104** | 0.4335 | 0.4081 | **−0.0254** | 10.8 | 74 | 6.8× |
+| yolo26n-seg | 0.3985 | 0.3913 | **−0.0072** | 0.3399 | 0.3247 | **−0.0152** | 8.4 | 458 | 54.2× |
+| yolo26s-seg | 0.4725 | 0.4632 | **−0.0093** | 0.3993 | 0.3787 | **−0.0206** | 9.4 | 217 | 23.2× |
+| yolo26m-seg | 0.5220 | 0.5024 | **−0.0196** | 0.4393 | 0.4081 | **−0.0312** | 9.7 | 74 | 7.6× |
 
-Segmentation is where the pipeline detonates: **6.8–63.7×** the single-stream reference, because the Ultralytics mask postprocess collapses to ~7–11 FPS even on the ANE while EdgeFirst overlaps decode/inference/mask across workers. Box Δ is **≤ 1.7 pp**; mask Δ is **0.9–3.1 pp** — wider on the classic-head yolov8/yolo11 seg models, tighter on the yolo26 seg (which on this lane is the NMS-free head — see the known issue above) — a mask-decode gap flagged for the second-pass accuracy review (recorded, not a release blocker). EdgeFirst publishes no mask AP for yolo11m-seg (perf-only).
+Segmentation is where the pipeline detonates: **7.6–63.7×** the single-stream reference, because the Ultralytics mask postprocess collapses to ~7–11 FPS even on the ANE while EdgeFirst overlaps decode/inference/mask across workers. Box Δ is **≤ 2.0 pp**; mask Δ is **1.5–3.1 pp** across the (now uniformly classical-head) seg models — a mask-decode gap flagged for the second-pass accuracy review (recorded, not a release blocker). EdgeFirst publishes no mask AP for yolo11m-seg (perf-only).
 
 ## Validation throughput — the headline
 
@@ -304,10 +304,10 @@ The pipelining is the product: it is the difference between minutes and hours fo
 | Validator | all 15 models (5000-image COCO val each) | vs EdgeFirst |
 |---|--:|--:|
 | **EdgeFirst (ours)** | **5.2 min** | — |
-| Ultralytics native CoreML validator (ANE) | 73.6 min | **14× slower** |
-| Ultralytics ONNX FP32 reference | 3.3 hours | **38× slower** |
+| Ultralytics native CoreML validator (ANE) | 77.7 min | **15× slower** |
+| Ultralytics ONNX FP32 reference | 3.4 hours | **39× slower** |
 
-EdgeFirst validates the entire 15-model suite in **5.2 minutes**; the Ultralytics validator — even native on the same Neural Engine — needs **over an hour**, and the FP32 reference **3.3 hours** — at full box-AP parity. Same pipelining advantage as Parts 1/1b, now on Apple Silicon: an order-of-magnitude (up to **64×** on segmentation) throughput gain that turns edge-model validation from an overnight job into a coffee break.
+EdgeFirst validates the entire 15-model suite in **5.2 minutes**; the Ultralytics validator — even native on the same Neural Engine — needs **over an hour**, and the FP32 reference **3.4 hours** — at full box-AP parity. Same pipelining advantage as Parts 1/1b, now on Apple Silicon: an order-of-magnitude (up to **64×** on segmentation) throughput gain that turns edge-model validation from an overnight job into a coffee break.
 
 ---
 
