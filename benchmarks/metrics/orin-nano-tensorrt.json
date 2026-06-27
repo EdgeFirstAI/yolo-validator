@@ -1362,6 +1362,114 @@
         "e2e": 29.545616874711172
       },
       "n_images": 4997
+    },
+    {
+      "model": "yolo11n",
+      "variant": "yolo11n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "trt-minmax",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "tensorrt",
+      "box_ap": 0.37281644442972434,
+      "box_ap50": 0.5274638045074279,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 37.251544135406036,
+      "latency_ms": {
+        "pre": 1.4056472843512893,
+        "inf": 3.6056823084596545,
+        "post": 2.785754415113479,
+        "e2e": 7.797084007924422
+      },
+      "n_images": 4999,
+      "batch": 1
+    },
+    {
+      "model": "yolo26n",
+      "variant": "yolo26n-classic",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "trt-minmax",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "tensorrt",
+      "box_ap": 0.37737850966125,
+      "box_ap50": 0.5391641515833796,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 38.3861815743624,
+      "latency_ms": {
+        "pre": 1.408032834599726,
+        "inf": 3.7647771808318793,
+        "post": 2.78396822118666,
+        "e2e": 7.956778236618265
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov5nu",
+      "variant": "yolov5nu",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "trt-minmax",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "tensorrt",
+      "box_ap": 0.32867149063941015,
+      "box_ap50": 0.4787944779776738,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 37.49148693920687,
+      "latency_ms": {
+        "pre": 1.4512650359189139,
+        "inf": 3.2628304664045573,
+        "post": 2.9360971802379936,
+        "e2e": 7.650192682561465
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "trt-minmax",
+        "calib": "train2017/500"
+      },
+      "lane": "baseline",
+      "validator": "ultralytics",
+      "workflow": "ultralytics",
+      "engine": "tensorrt",
+      "box_ap": 0.3538355168732842,
+      "box_ap50": 0.5012091781586657,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 41.827746929351484,
+      "latency_ms": {
+        "pre": 1.3866033356403933,
+        "inf": 3.2938526722369716,
+        "post": 2.674352530320175,
+        "e2e": 7.35480853819754
+      },
+      "n_images": 4999,
+      "batch": 1
     }
   ]
 }

@@ -149,13 +149,25 @@ def export_to_onnx(pt_path: str, output_dir: str, export_mode: str = "classic",
 
 
 def export_to_engine(pt_path: str, output_dir: str, export_mode: str = "classic",
-                     half: bool = False) -> str:
+                     half: bool = False, int8: bool = False,
+                     calib_data: str | None = None,
+                     int8_fp16_fallback: bool = False) -> str:
     """Export .pt to a TensorRT .engine (device-specific; build on the target).
 
     Mode is applied via Detect.end2end before export (classic = anchor-grid +
     NMS; nmsfree = E2E head). The engine is built by Ultralytics (which goes
     .pt → .onnx → TRT). Both Ultralytics and yolo-validator load this same
     engine (yolo-validator strips the Ultralytics metadata header). Idempotent.
+
+    Precision: FP32 (default), ``half`` → FP16, or ``int8`` → INT8. INT8 follows
+    the official Ultralytics workflow exactly —
+    ``model.export(format="engine", int8=True, data=<yaml>, fraction=1.0)`` —
+    which runs TensorRT entropy (IInt8EntropyCalibrator2) PTQ over the
+    representative dataset named by ``calib_data`` (an Ultralytics dataset yaml).
+    ``calib_data`` is pre-built to the exact 500-image calibration subset shared
+    with the TFLite INT8 effort. INT8 takes precedence over ``half``. The engine
+    filename carries a ``-int8`` / ``-fp16`` precision tag so the three
+    precisions never collide on disk.
 
     Returns absolute path to the .engine file.
     """
@@ -166,21 +178,40 @@ def export_to_engine(pt_path: str, output_dir: str, export_mode: str = "classic"
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    suffix = f"-{export_mode}" + ("-fp16" if half else "")
+    if int8 and not calib_data:
+        raise ValueError("export_to_engine(int8=True) requires calib_data "
+                         "(an Ultralytics dataset yaml for TRT calibration)")
+
+    prec = "int8" if int8 else ("fp16" if half else "fp32")
+    suffix = f"-{export_mode}" + (f"-{prec}" if prec != "fp32" else "")
     engine_path = output_dir / (pt_path.stem + suffix + ".engine")
     if engine_path.exists():
         print(f"[export] {engine_path} already exists, skipping export")
         return str(engine_path)
 
     print(f"[export] building TensorRT engine {pt_path} ({export_mode}, "
-          f"{'fp16' if half else 'fp32'}) → {engine_path} ...")
+          f"{prec}) → {engine_path} ...")
     model = YOLO(str(pt_path))
     for m in model.model.modules():
         if isinstance(m, Detect):
             m.end2end = (export_mode == "nmsfree")
             break
-    exported = model.export(format="engine", imgsz=640, half=half,
-                            device=0, dynamic=False, batch=1, verbose=False)
+    export_kwargs = dict(format="engine", imgsz=640, device=0,
+                         dynamic=False, batch=1, verbose=False)
+    if int8:
+        # int8=True → full-integer TRT PTQ; data yaml supplies the representative
+        # dataset; fraction=1.0 uses every image in calib_data (pre-built to the
+        # 500-image subset). Pure INT8 by default. ``int8_fp16_fallback`` also
+        # sets half=True, the documented Ultralytics/TensorRT mixed-precision
+        # path: TRT keeps INT8 (Q/DQ) where it has a kernel and falls back to
+        # FP16 where it does not (e.g. the YOLO seg proto/mask head, which has no
+        # pure-INT8 implementation on TRT 10.3). FP32 stays the last-resort
+        # fallback either way.
+        export_kwargs.update(int8=True, data=str(calib_data), fraction=1.0,
+                             half=int8_fp16_fallback)
+    else:
+        export_kwargs.update(half=half)
+    exported = model.export(**export_kwargs)
     exported_path = Path(exported)
     if exported_path != engine_path:
         exported_path.rename(engine_path)
@@ -413,7 +444,11 @@ def run_benchmark_a(
     warmup: int = 3,
     device: str = "cpu",
     half: bool = False,
+    int8: bool = False,
+    calib_data: str | None = None,
+    int8_fp16_fallback: bool = False,
     skip_ult_pt: bool = False,
+    skip_yv: bool = False,
     edgefirst_session_id: str | None = None,
     batch: int = 1,
 ) -> dict:
@@ -487,7 +522,9 @@ def run_benchmark_a(
                 break
 
     if device == "tensorrt":
-        engine_path = export_to_engine(str(pt_path), str(models_dir), export_mode, half=half)
+        engine_path = export_to_engine(str(pt_path), str(models_dir), export_mode,
+                                       half=half, int8=int8, calib_data=calib_data,
+                                       int8_fp16_fallback=int8_fp16_fallback)
 
         # ult-pt (CUDA) — PyTorch FP32 gold reference, on-device. Skippable:
         # where the TensorRT engine is the deployment path (Orin), the PyTorch
@@ -527,25 +564,30 @@ def run_benchmark_a(
             print(f"  [FAILED] ult-engine: {e}")
             results_per_config["ult-engine"] = {"error": str(e)}
 
-        # yv-tensorrt — yolo-validator TensorRT backend on the same engine (numpy pre/post)
-        print(f"\n[{label}] running yv-tensorrt ...")
-        try:
-            yv_trt = run_yolo_validator(
-                engine_path, run_images_dir, "numpy", task, run_gt_json, max_images,
-                warmup=effective_warmup, runtime="tensorrt",
-            )
-            yv_trt_stats = rebin_samples(yv_trt["stage_frame_timings"], detail=True)
-            results_per_config["yv-tensorrt"] = {
-                **canonical_eval(run_gt_json, yv_trt["predictions"], iou_types),
-                "timing": {k: v.mean_ms for k, v in yv_trt_stats.items()},
-                "timing_stats": {k: vars(v) for k, v in yv_trt_stats.items()},
-                "n_images": yv_trt["n_images"],
-                "wall_s": yv_trt["wall_s"],
-            }
-            print(f"  box AP={results_per_config['yv-tensorrt'].get('bbox', {}).get('AP', 'N/A'):.4f}  wall={yv_trt['wall_s']:.1f}s")
-        except Exception as e:
-            print(f"  [FAILED] yv-tensorrt: {e}")
-            results_per_config["yv-tensorrt"] = {"error": str(e)}
+        # yv-tensorrt — yolo-validator TensorRT backend on the same engine (numpy
+        # pre/post). Skippable via --skip-yv (e.g. the INT8 lane keeps only the
+        # official ult-engine baseline to halve on-device runtime).
+        if skip_yv:
+            print(f"\n[{label}] skipping yv-tensorrt (--skip-yv)")
+        else:
+            print(f"\n[{label}] running yv-tensorrt ...")
+            try:
+                yv_trt = run_yolo_validator(
+                    engine_path, run_images_dir, "numpy", task, run_gt_json, max_images,
+                    warmup=effective_warmup, runtime="tensorrt",
+                )
+                yv_trt_stats = rebin_samples(yv_trt["stage_frame_timings"], detail=True)
+                results_per_config["yv-tensorrt"] = {
+                    **canonical_eval(run_gt_json, yv_trt["predictions"], iou_types),
+                    "timing": {k: v.mean_ms for k, v in yv_trt_stats.items()},
+                    "timing_stats": {k: vars(v) for k, v in yv_trt_stats.items()},
+                    "n_images": yv_trt["n_images"],
+                    "wall_s": yv_trt["wall_s"],
+                }
+                print(f"  box AP={results_per_config['yv-tensorrt'].get('bbox', {}).get('AP', 'N/A'):.4f}  wall={yv_trt['wall_s']:.1f}s")
+            except Exception as e:
+                print(f"  [FAILED] yv-tensorrt: {e}")
+                results_per_config["yv-tensorrt"] = {"error": str(e)}
 
     else:
         # device="cpu" | "cuda" | "coreml" — the yolo-validator proxy lane is the
@@ -817,6 +859,24 @@ def build_parser() -> argparse.ArgumentParser:
                         "reference (matches the non-batched edgefirst-profiler). N>1 "
                         "measures batched throughput, ONNX-EP only (cpu/cuda); rejected "
                         "on tensorrt/coreml (fixed batch=1).")
+    p.add_argument("--int8", action="store_true",
+                   help="INT8 precision (device=tensorrt only). Builds a full-"
+                        "integer TensorRT engine via the official Ultralytics "
+                        "workflow (int8=True, data=<calib>, fraction=1.0; TRT "
+                        "entropy PTQ). Requires --calib-data. Mutually exclusive "
+                        "with --half.")
+    p.add_argument("--calib-data", default=None, metavar="YAML",
+                   help="Ultralytics dataset yaml naming the INT8 calibration "
+                        "images (used only with --int8). Build it to the shared "
+                        "500-image subset before running.")
+    p.add_argument("--int8-fp16-fallback", action="store_true",
+                   help="With --int8, also enable FP16 fallback (half=True): TRT "
+                        "keeps INT8 where it has a kernel and falls back to FP16 "
+                        "where it does not (e.g. the YOLO seg proto/mask head, "
+                        "which has no pure-INT8 implementation on TRT 10.3).")
+    p.add_argument("--skip-yv", action="store_true",
+                   help="Skip the yolo-validator proxy lane (yv-tensorrt). Keeps "
+                        "only the official Ultralytics ult-engine baseline.")
     p.add_argument("--skip-ult-pt", action="store_true",
                    help="Skip the Ultralytics PyTorch reference lane. Use where "
                         "the TensorRT/ONNX engine is the deployment path (e.g. "
@@ -865,6 +925,14 @@ def _spawn_variant_worker(model_name: str, export_mode: str, args) -> int:
         cmd += ["--max-images", str(args.max_images)]
     if args.half:
         cmd.append("--half")
+    if args.int8:
+        cmd.append("--int8")
+    if args.calib_data:
+        cmd += ["--calib-data", str(args.calib_data)]
+    if args.int8_fp16_fallback:
+        cmd.append("--int8-fp16-fallback")
+    if args.skip_yv:
+        cmd.append("--skip-yv")
     if args.skip_ult_pt:
         cmd.append("--skip-ult-pt")
     if args.edgefirst_session:
@@ -885,6 +953,19 @@ def main() -> None:
         parser.error("--half is not valid with --device cpu (ONNX Runtime CPU has "
                      "no useful FP16 path). Use --device cuda for FP16 ONNX, or "
                      "--device tensorrt for a FP16 engine.")
+
+    if args.int8:
+        if args.device != "tensorrt":
+            parser.error("--int8 is only supported with --device tensorrt "
+                         "(full-integer TensorRT engine via Ultralytics PTQ).")
+        if args.half:
+            parser.error("--int8 and --half are mutually exclusive; --int8 builds "
+                         "a pure INT8 engine.")
+        if not args.calib_data:
+            parser.error("--int8 requires --calib-data <yaml> (the calibration "
+                         "image set for TensorRT entropy PTQ).")
+    elif args.int8_fp16_fallback:
+        parser.error("--int8-fp16-fallback only applies with --int8.")
 
     # On device=tensorrt, isolate each variant in its own process (unless the
     # caller already narrowed to a single export mode, i.e. we ARE a worker, or
@@ -973,7 +1054,11 @@ def main() -> None:
                     warmup=args.warmup,
                     device=args.device,
                     half=args.half,
+                    int8=args.int8,
+                    calib_data=args.calib_data,
+                    int8_fp16_fallback=args.int8_fp16_fallback,
                     skip_ult_pt=args.skip_ult_pt,
+                    skip_yv=args.skip_yv,
                     edgefirst_session_id=args.edgefirst_session,
                     batch=args.batch,
                 )

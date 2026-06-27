@@ -17,13 +17,14 @@ The baseline is the Ultralytics/Vendor workflow (validated by the Ultralytics va
 | onnx-cuda | FP16 | ultralytics | 12 | 9 | 0.3669 | 0.3016 | ≤0.51 pp | ≤0.59 pp | 154.9 |
 | onnx-cuda | FP32 | ultralytics | 12 | 9 | 0.3671 | 0.3020 | ≤0.49 pp | ≤0.61 pp | 132.3 |
 | orin-nano-tensorrt | FP16 | ultralytics | 12 | 8 | 0.3671 | 0.3019 | ≤0.49 pp | ≤0.63 pp | 38.4 |
+| orin-nano-tensorrt | INT8 | ultralytics | 4 | 0 | 0.3538 | — | — | — | 41.8 |
 | macos-onnx-coreml | FP16 | ultralytics | 8 | 7 | 0.3672 | 0.3018 | ≤0.82 pp | ≤0.92 pp | 62.0 |
 | macos-onnx-coreml | FP32 | ultralytics | 8 | 7 | 0.3670 | 0.3018 | — | — | 25.4 |
 | rpi5-hailo8l | INT8 | yolo-validator | 6 | 3 | 0.3603 | 0.2863 | — | — | 42.0 |
 | imx95-neutron | INT8 | yolo-validator | 6 | 6 | 0.3285 | 0.2331 | — | — | 6.5 |
 | imx8mp-vsi | INT8 | yolo-validator | 5 | 6 | 0.3285 | 0.2339 | — | — | 6.3 |
 
-*Baseline = Ultralytics/Vendor workflow (validator column); proxy Δ = yolo-validator vs the Ultralytics baseline where both run (one-sided). Generated from `benchmarks/metrics/` — 9 platform(s).*
+*Baseline = Ultralytics/Vendor workflow (validator column); proxy Δ = yolo-validator vs the Ultralytics baseline where both run (one-sided). Generated from `benchmarks/metrics/` — 10 platform(s).*
 <!-- END:cross-platform -->
 
 ---
@@ -135,7 +136,7 @@ Hailo-8L INT8 yolov8n is ~64 FPS HW-only; the profiler sustains ~68 FPS end-to-e
 
 ---
 
-# Part 1c — Jetson Orin Nano Super (orin-nano-tensorrt, FP16)
+# Part 1c — Jetson Orin Nano Super (orin-nano-tensorrt, FP16 + INT8)
 
 On the Orin the Ultralytics validator runs on-target (FP16 TensorRT engine, `device=0`), so it is the reference; the **yolo-validator** proxy stands in for the edge targets where it cannot. Both lanes are FP16 TensorRT on the same Orin Nano Super, COCO val2017, crowd-as-normal. **Δ = Ultralytics − proxy** (one-sided proxy fidelity; the proxy is always marginally lower from letterbox-pad rounding + greedy-vs-torchvision NMS ties). FPS is wall throughput — the proxy runs box decode / NMS / mask on the Orin CPU, so its FPS trails Ultralytics (which keeps postprocess on the GPU). **EdgeFirst Orin profiling is pending** (— columns), and will be added with the refreshed profiler run.
 
@@ -181,6 +182,21 @@ yolo-validator single-stream (yv-tensorrt), `pre` = JPEG decode + letterbox on t
 | yolov8n-seg | yolo-validator | 6.8 | 8.3 | 424.7 | 439.8 | 2.3 |
 
 Same shape as the other edge targets: detection is balanced, segmentation is host-postprocess-bound (mask materialization 425 ms on the Orin CPU → 2.3 fps single-stream), the serial stage a pipelined runner overlaps.
+
+## INT8 TensorRT (full integer, nano detection)
+
+INT8 TensorRT engines follow the official Ultralytics workflow exactly — `model.export(format="engine", int8=True, data=<calib>.yaml, fraction=1.0)` — with the **same 500 COCO train2017 calibration images** used for the i.MX TFLite INT8 effort (seeded subset, disjoint from val2017; identical file set verified by content hash on host and Orin). TensorRT calibrates with its **MinMax** calibrator (`TRT-100300-MinMaxCalibration`) — note this is MinMax, not the EntropyCalibratorV2 the older Ultralytics docs describe; Ultralytics 8.4.x emits a Q/DQ INT8 graph. Validated by the Ultralytics validator on-target (`ult-engine` lane), full val2017, crowd-as-normal. **Δ = INT8 − FP16** on the same Orin.
+
+| Variant | FP16 box | **INT8 box** | **Δ box** | INT8 box50 | FP16 FPS | INT8 FPS |
+|---|--:|--:|--:|--:|--:|--:|
+| yolov5nu | 0.3365 | 0.3287 | −0.78 pp | 0.4788 | 38.0 | 37.5 |
+| yolov8n | 0.3671 | 0.3538 | −1.33 pp | 0.5012 | 38.4 | 41.8 |
+| yolo11n | 0.3868 | 0.3728 | −1.40 pp | 0.5275 | 39.6 | 37.3 |
+| yolo26n-classic | 0.4022 | 0.3774 | −2.48 pp | 0.5392 | 39.7 | 38.4 |
+
+Full-integer TensorRT INT8 on the Orin is well-behaved for detection: box mAP drops **0.78–2.48 pp** vs FP16 with throughput unchanged-to-slightly-faster, and **no collapse** — the opposite of the i.MX NPU-delegate behaviour (Parts 1d/1e), where the same family of models drives to near-zero. Because the calibration image set is identical across both efforts, that contrast isolates the i.MX loss to the **VX/Neutron op-mapping**, not to INT8 quantization or the calibration data. The quantization-sensitivity ordering matches the cross-platform pattern: the YOLO26 anchor-free-derived head loses the most (−2.48 pp), the older yolov5u head the least (−0.78 pp). Engines are ~4–5 MiB (≈¼ the FP32 graph).
+
+**Segmentation INT8 is not reported — it is not buildable through any upstream-supported path on this stack (TensorRT 10.3.0 / JetPack 6).** The mask **proto head** (`/model.22/proto/cv3/conv` + SiLU) has no INT8 implementation in TRT 10.3: (1) `int8=True` fails with `Error Code 10: Could not find any implementation for node …/proto/cv3/conv`; (2) `int8=True, half=True` does not help — Ultralytics forces `half=False` when `int8=True` ("mutually exclusive"), so it reduces to case 1; (3) building the Ultralytics `format=onnx int8=True` Q/DQ graph directly with `trtexec --int8 --fp16` fails to parse — ORT emits **asymmetric** Q/DQ and TensorRT requires symmetric zero-points. The official Ultralytics Jetson guide attributes JetPack-6 INT8 build failures to TRT 10.3.0 and prescribes upgrading to **TensorRT 10.7+**; detection is unaffected and reported above.
 
 ---
 
