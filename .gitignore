@@ -35,8 +35,12 @@ ULTRALYTICS_VALIDATION.md
 # Internal benchmarking/validation status ledger — not for publication
 STATUS.md
 
-# Internal research notes (NXP INT8 findings) — not for publication
+# Internal research notes (NXP INT8 findings) — rolled into QUANTIZATION.md
+# 2026-06-29 and removed.
 NXP-INT8-RESEARCH.md
+
+# Unified quantization knowledge + metrics doc — internal, not for git yet
+QUANTIZATION.md
 
 reval.log
 reval.DONE
