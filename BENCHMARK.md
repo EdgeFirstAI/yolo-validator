@@ -37,18 +37,18 @@ The edgefirst-profiler is a pipelined runner (4× in-flight) on the same byte-id
 
 | Variant | reference box | EdgeFirst box | **EdgeFirst Δ** | ref FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|
-| yolov5nu | 0.3371 | 0.3295 | **−0.0076** | 137 | 452 | **3.3×** |
+| yolov5nu | 0.3371 | 0.3295 | **−0.0076** | 137 | 455 | 3.3× |
 | yolov5su | 0.4219 | 0.4126 | **−0.0093** | 110 | 318 | 2.9× |
 | yolov5mu | 0.4808 | 0.4699 | **−0.0109** | 68 | 167 | 2.5× |
-| yolov8n | 0.3671 | 0.3583 | **−0.0088** | 132 | 448 | 3.4× |
-| yolov8s | 0.4425 | 0.4322 | **−0.0103** | 99 | 296 | 3.0× |
-| yolov8m | 0.4943 | 0.4845 | **−0.0098** | 56 | 148 | 2.7× |
-| yolo11n | 0.3867 | 0.3784 | **−0.0083** | 132 | 440 | 3.3× |
-| yolo11s | 0.4587 | 0.4488 | **−0.0099** | 100 | 304 | 3.0× |
-| yolo11m | 0.5051 | 0.4959 | **−0.0092** | 60 | 152 | 2.5× |
-| yolo26n-classic | 0.4022 | 0.3969 | **−0.0053** | 136 | 431 | 3.2× |
-| yolo26s-classic | 0.4774 | 0.4712 | **−0.0062** | 100 | 296 | 2.9× |
-| yolo26m-classic | 0.5240 | 0.5187 | **−0.0053** | 59 | 156 | 2.6× |
+| yolov8n | 0.3671 | 0.3583 | **−0.0088** | 132 | 448 | **3.4×** |
+| yolov8s | 0.4425 | 0.4322 | **−0.0103** | 99 | 297 | 3.0× |
+| yolov8m | 0.4943 | 0.4845 | **−0.0098** | 56 | 147 | 2.6× |
+| yolo11n | 0.3867 | 0.3784 | **−0.0083** | 132 | 434 | 3.3× |
+| yolo11s | 0.4587 | 0.4488 | **−0.0099** | 100 | 303 | 3.0× |
+| yolo11m | 0.5051 | 0.4959 | **−0.0092** | 60 | 152 | 2.6× |
+| yolo26n-classic | 0.4022 | 0.3969 | **−0.0053** | 136 | 428 | 3.2× |
+| yolo26s-classic | 0.4774 | 0.4712 | **−0.0062** | 100 | 295 | 2.9× |
+| yolo26m-classic | 0.5240 | 0.5187 | **−0.0053** | 59 | 154 | 2.6× |
 
 EdgeFirst runs **2.5–3.4×** the reference throughput at a **0.5–1.1 pp** box-AP cost. All YOLO26 rows are the classical (`end2end=False`) head EdgeFirst standardizes on; the native end-to-end (NMS-free) head is dropped for edge because it is no more accurate or faster and collapses under INT8 — see [YOLO26.md](YOLO26.md) for the full FP32/FP16/INT8 head-to-head.
 
@@ -56,59 +56,59 @@ EdgeFirst runs **2.5–3.4×** the reference throughput at a **0.5–1.1 pp** bo
 
 | Variant | ref box | EdgeFirst box | **box Δ** | ref mask | EdgeFirst mask | **mask Δ** | ref FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| yolov8n-seg | 0.3603 | 0.3544 | **−0.0059** | 0.3020 | 0.2868 | **−0.0152** | 20.5 | 333 | **16.3×** |
-| yolov8s-seg | 0.4392 | 0.4324 | **−0.0068** | 0.3635 | 0.3437 | **−0.0198** | 23.4 | 222 | 9.5× |
-| yolov8m-seg | 0.4896 | 0.4810 | **−0.0086** | 0.4028 | 0.3764 | **−0.0264** | 20.6 | 119 | 5.8× |
-| yolo11n-seg | 0.3827 | 0.3740 | **−0.0087** | 0.3190 | 0.3016 | **−0.0174** | 22.8 | 320 | 14.0× |
+| yolov8n-seg | 0.3603 | 0.3544 | **−0.0059** | 0.3020 | 0.2868 | **−0.0152** | 20.5 | 333 | **16.2×** |
+| yolov8s-seg | 0.4392 | 0.4324 | **−0.0068** | 0.3635 | 0.3437 | **−0.0198** | 23.4 | 223 | 9.5× |
+| yolov8m-seg | 0.4896 | 0.4810 | **−0.0086** | 0.4028 | 0.3764 | **−0.0264** | 20.6 | 119 | 5.7× |
+| yolo11n-seg | 0.3827 | 0.3740 | **−0.0087** | 0.3190 | 0.3016 | **−0.0174** | 22.8 | 316 | 13.8× |
 | yolo11s-seg | 0.4558 | 0.4477 | **−0.0081** | 0.3744 | 0.3527 | **−0.0217** | 24.5 | 225 | 9.2× |
-| yolo11m-seg | 0.5051 | 0.4984 | **−0.0067** | 0.4139 | — | — | 22.3 | 152 | 6.8× |
-| yolo26n-seg-classic | 0.3993 | 0.3946 | **−0.0047** | 0.3408 | 0.3271 | **−0.0137** | 24.6 | 290 | 11.8× |
-| yolo26s-seg-classic | 0.4730 | 0.4686 | **−0.0044** | 0.4000 | 0.3816 | **−0.0184** | 24.7 | 207 | 8.4× |
-| yolo26m-seg-classic | 0.5231 | 0.5204 | **−0.0027** | 0.4397 | 0.4200 | **−0.0197** | 20.6 | 110 | 5.4× |
+| yolo11m-seg | 0.5051 | 0.5046 | **−0.0005** | 0.4139 | 0.3942 | **−0.0197** | 22.3 | 58 † | 2.6× |
+| yolo26n-seg-classic | 0.3993 | 0.3946 | **−0.0047** | 0.3408 | 0.3271 | **−0.0137** | 24.6 | 289 | 11.8× |
+| yolo26s-seg-classic | 0.4730 | 0.4686 | **−0.0044** | 0.4000 | 0.3816 | **−0.0184** | 24.7 | 208 | 8.4× |
+| yolo26m-seg-classic | 0.5231 | 0.5204 | **−0.0027** | 0.4397 | 0.4200 | **−0.0197** | 20.6 | 110 | 5.3× |
 
-Segmentation is where the pipeline gain is largest: **5.4–16.3×** the single-stream reference, because the reference is bottlenecked on the mask postprocess EdgeFirst overlaps across workers. Box Δ is **0.3–0.9 pp** and mask Δ is **1.4–2.6 pp** — the small accuracy cost of the EdgeFirst mask decode/export pipeline that buys the order-of-magnitude throughput gain.
+Segmentation is where the pipeline gain is largest: **5.3–16.2×** the single-stream reference, because the reference is bottlenecked on the mask postprocess EdgeFirst overlaps across workers. Box Δ is **≤ 0.9 pp** and mask Δ is **1.4–2.6 pp** — the small accuracy cost of the EdgeFirst mask decode/export pipeline that buys the order-of-magnitude throughput gain. † yolo11m-seg has no FP16 deployment run in the catalog, so its FPS/speedup are the FP32 EdgeFirst run against the FP32 reference (the other rows compare FP16 EdgeFirst throughput to the FP32 reference, per the header).
 
 ## Per-stage latency
 
-Per-frame stage latency for the **yolo-validator single-stream reference** versus the **edgefirst-profiler**. Every row measures `pre` the same way — **`pre` = JPEG decode + letterbox (+ H2D)** — and `post` = box decode + NMS + mask + RLE-encode. The profiler overlaps up to 4 frames, so its throughput far exceeds 1000 ÷ per-frame-latency at comparable per-frame cost. EdgeFirst rows are **provisional, pending the updated profiler run**.
+Per-frame stage latency for the **yolo-validator single-stream reference** versus the **edgefirst-profiler**. Every row measures `pre` the same way — **`pre` = JPEG decode + letterbox (+ H2D)** — and `post` = box decode + NMS + mask + RLE-encode. The profiler overlaps up to 4 frames, so its throughput far exceeds 1000 ÷ per-frame-latency at comparable per-frame cost. EdgeFirst per-stage means are from the current catalog.
 
 | Variant | lane | pre | inf | post | e2e (ms) | FPS |
 |---|---|--:|--:|--:|--:|--:|
 | yolov8n | yolo-validator | 1.8 | 4.6 | 5.4 | 11.8 | 84.6 |
-| yolov8n | edgefirst-profiler † | 7.8 | 6.3 | 0.8 | 11.9 | **448** |
+| yolov8n | edgefirst-profiler | 4.8 | 6.3 | 0.7 | 11.9 | **448** |
 | yolov8n-seg | yolo-validator | 2.5 | 6.6 | 162.2 | 171.3 | 5.8 |
-| yolov8n-seg | edgefirst-profiler † | 9.0 | 7.9 | 4.2 | 17.9 | **333** |
+| yolov8n-seg | edgefirst-profiler | 5.8 | 7.9 | 4.2 | 17.9 | **333** |
 
-† EdgeFirst rows provisional — pending the refreshed profiler measurements. The yolo-validator single-stream path runs box decode, NMS and mask materialization on the host CPU, so segmentation `post` (162 ms) dominates its per-frame cost — exactly the serial stage the profiler overlaps across workers.
+The yolo-validator single-stream path runs box decode, NMS and mask materialization on the host CPU, so segmentation `post` (162 ms) dominates its per-frame cost — exactly the serial stage the profiler overlaps across workers.
 
 ---
 
 # Part 1b — EdgeFirst on Hailo-8L (rpi5-hailo8l, INT8)
 
-On Hailo there is no Ultralytics validator (no PyTorch/CUDA), so the reference is the validated **yolo-validator** INT8 proxy. Both lanes are INT8 on the same Raspberry Pi 5 + Hailo-8L, COCO val2017, crowd-as-normal. The yolo-validator proxy runs the **vendor Hailo Model Zoo precompiled HEFs**; EdgeFirst runs its **own** INT8 compile of the same architectures — so the accuracy delta is partly EdgeFirst-compile-vs-vendor-HEF, not a like-for-like quantization of one artifact. **Accuracy** Δ comes from EdgeFirst Studio validation sessions; **FPS** comes from the on-device edgefirst-profiler benchmark (a different instrument from the validation session). EdgeFirst columns are **provisional, pending the refreshed profiler/validation run**; `—` marks a model not yet measured by the profiler.
+On Hailo there is no Ultralytics validator (no PyTorch/CUDA), so the reference is the validated **yolo-validator** INT8 proxy. Both lanes are INT8 on the same Raspberry Pi 5 + Hailo-8L, COCO val2017, crowd-as-normal. The yolo-validator proxy runs the **vendor Hailo Model Zoo precompiled HEFs**; EdgeFirst runs its **own** INT8 compile of the same architectures — so the accuracy delta is partly EdgeFirst-compile-vs-vendor-HEF, not a like-for-like quantization of one artifact. Both **accuracy** and **throughput** come from the EdgeFirst Studio catalog: FPS is the profiler's realized steady-state throughput (`realized_fps_scalar`, measured on-device). `—` marks a model with no comparable EdgeFirst lane.
 
 ## Detection
 
-| Variant | proxy box | EdgeFirst box | **Δ box** | proxy FPS | EdgeFirst FPS † | speedup |
+| Variant | proxy box | EdgeFirst box | **Δ box** | proxy FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|
-| yolov8n | 0.3603 | 0.3436 | **−0.0167** | 42.0 | 68.1 | **1.62×** |
-| yolo11n | 0.3758 | 0.3602 | **−0.0156** | 36.7 | — | — |
-| yolo26n | 0.3780 | 0.3497 | **−0.0283** | 26.4 | — | — |
-| yolo26s | 0.4502 | 0.4169 | **−0.0333** | 18.7 | — | — |
-| yolo26m | 0.5005 | 0.4538 | **−0.0467** | 10.1 | — | — |
+| yolov8n | 0.3603 | 0.3522 | **−0.0081** | 42.0 | 64.9 | 1.5× |
+| yolo11n | 0.3758 | 0.3673 | **−0.0085** | 36.7 | 52.6 | 1.4× |
+| yolo26n | 0.3780 | 0.3661 | **−0.0119** | 26.4 | 45.8 | **1.7×** |
+| yolo26s | 0.4502 | 0.4239 | **−0.0263** | 18.7 | 20.4 | 1.1× |
+| yolo26m | 0.5005 | 0.4588 | **−0.0417** | 10.1 | 11.0 | 1.1× |
 | yolov5s | 0.3380 | — | — | 25.9 | — | — |
 
-EdgeFirst INT8 detection lands **1.6–4.7 pp** below the Model-Zoo-HEF proxy in box AP. yolov5s is the classic anchor-based Model Zoo HEF; EdgeFirst's `yolov5-det` is the anchor-free retrain, so there is no comparable EdgeFirst lane (—).
+EdgeFirst INT8 detection lands **0.8–4.2 pp** below the Model-Zoo-HEF proxy in box AP — the gap is tightest on the yolov8/11 heads (0.8–0.9 pp) and widest on the anchor-free-derived yolo26 family (up to 4.2 pp on yolo26m). yolov5s is the classic anchor-based Model Zoo HEF; EdgeFirst's `yolov5-det` is the anchor-free retrain, so there is no comparable EdgeFirst lane (—).
 
 ## Segmentation
 
-| Variant | proxy box | EF box | **Δ box** | proxy mask | EF mask | **Δ mask** | proxy FPS | EF FPS † | speedup |
+| Variant | proxy box | EF box | **Δ box** | proxy mask | EF mask | **Δ mask** | proxy FPS | EF FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| yolov8n-seg | 0.3505 | 0.3394 | **−0.0111** | 0.2863 | 0.2761 | **−0.0102** | 3.5 | 50.0 | **14.2×** |
-| yolov8s-seg | 0.4303 | 0.4163 | **−0.0140** | 0.3462 | 0.3308 | **−0.0154** | 3.1 | 24.5 | **7.9×** |
-| yolov8m-seg | 0.4821 | 0.4646 | **−0.0175** | 0.3835 | 0.3648 | **−0.0187** | 2.8 | — | — |
+| yolov8n-seg | 0.3505 | 0.3447 | **−0.0058** | 0.2863 | 0.2802 | **−0.0061** | 3.5 | 53.7 | **15.2×** |
+| yolov8s-seg | 0.4303 | 0.4239 | **−0.0064** | 0.3462 | 0.3368 | **−0.0094** | 3.1 | 22.7 | 7.3× |
+| yolov8m-seg | 0.4821 | 0.4717 | **−0.0104** | 0.3835 | 0.3703 | **−0.0132** | 2.8 | 13.3 | 4.8× |
 
-Mask AP is **1.0–1.9 pp** below the proxy (box **1.1–1.8 pp**). The segmentation speedup is largest because the single-stream proxy is dominated by host mask postprocess (below), which the profiler overlaps across workers.
+Mask AP is **0.6–1.3 pp** below the proxy (box **0.6–1.0 pp**) — tight, and tighter than the earlier catalog after the EdgeFirst mask-decode fixes. The segmentation speedup (**4.8–15.2×**) is largest because the single-stream proxy is dominated by host mask postprocess (below), which EdgeFirst's overlapped pipeline hides behind the NPU.
 
 ## Per-stage latency
 
@@ -130,47 +130,47 @@ Pure-NPU throughput (HW-only, `hailortcli benchmark`) — EdgeFirst's compile ma
 | yolov8n detect | 64.7 FPS | 63.9 FPS | 3 |
 | yolov8s-seg | 22.5 FPS | 21.0 FPS | 4 |
 
-Hailo-8L INT8 yolov8n is ~64 FPS HW-only; the profiler sustains ~68 FPS end-to-end by pipelining the host stages behind the NPU. Segmentation is NPU-bound (~89% of the 16.2 ms inference ceiling for yolov8n-seg); the profiler pipelines the host mask stages behind the NPU.
-
-† EdgeFirst FPS provisional — pending the refreshed profiler run.
+Hailo-8L INT8 yolov8n is ~64 FPS HW-only; the profiler sustains ~65 FPS end-to-end by pipelining the host stages behind the NPU (so end-to-end throughput sits right at the HW ceiling). Segmentation is NPU-bound (~89% of the 16.2 ms inference ceiling for yolov8n-seg); the profiler pipelines the host mask stages behind the NPU.
 
 ---
 
 # Part 1c — Jetson Orin Nano Super (orin-nano-tensorrt, FP16 + INT8)
 
-On the Orin the Ultralytics validator runs on-target (FP16 TensorRT engine, `device=0`), so it is the reference; the **yolo-validator** proxy stands in for the edge targets where it cannot. Both lanes are FP16 TensorRT on the same Orin Nano Super, COCO val2017, crowd-as-normal. **Δ = Ultralytics − proxy** (one-sided proxy fidelity; the proxy is always marginally lower from letterbox-pad rounding + greedy-vs-torchvision NMS ties). FPS is wall throughput — the proxy runs box decode / NMS / mask on the Orin CPU, so its FPS trails Ultralytics (which keeps postprocess on the GPU). **EdgeFirst Orin profiling is pending** (— columns), and will be added with the refreshed profiler run.
+On the Orin the Ultralytics validator runs on-target (FP16 TensorRT engine, `device=0`), so it is the reference. Both the reference and EdgeFirst run FP16 on the same Orin Nano Super, COCO val2017, crowd-as-normal. EdgeFirst box/mask AP and FPS come from the EdgeFirst Studio catalog (FPS = `realized_fps_scalar`, the profiler's realized steady-state throughput); speedup = EdgeFirst FPS ÷ Ultralytics FPS<sub>wall</sub>. The Ultralytics reference is single-stream (postprocess on the GPU); EdgeFirst's overlapped pipeline is the advantage measured here.
 
 ## Detection
 
-| Variant | Ultralytics box | proxy box | **Δ box** | Ult FPS | proxy FPS | EdgeFirst |
+| Variant | reference box | EdgeFirst box | **EdgeFirst Δ** | ref FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|
-| yolov5nu | 0.3365 | 0.3336 | +0.29 pp | 38.0 | 24.9 | — |
-| yolov5su | 0.4214 | 0.4198 | +0.16 pp | 35.4 | 27.7 | — |
-| yolov5mu | 0.4808 | 0.4801 | +0.07 pp | 29.7 | 25.9 | — |
-| yolov8n | 0.3671 | 0.3651 | +0.21 pp | 38.4 | 25.3 | — |
-| yolov8s | 0.4424 | 0.4391 | +0.33 pp | 36.8 | 26.9 | — |
-| yolov8m | 0.4944 | 0.4928 | +0.17 pp | 26.3 | 24.5 | — |
-| yolo11n | 0.3868 | 0.3819 | +0.49 pp | 39.6 | 27.0 | — |
-| yolo11s | 0.4587 | 0.4566 | +0.21 pp | 36.9 | 27.3 | — |
-| yolo11m | 0.5049 | 0.5026 | +0.23 pp | 30.6 | 26.3 | — |
-| yolo26n-classic | 0.4022 | 0.3988 | +0.34 pp | 39.7 | 29.9 | — |
-| yolo26s-classic | 0.4775 | 0.4753 | +0.23 pp | 36.1 | 28.8 | — |
-| yolo26m-classic | 0.5240 | 0.5221 | +0.19 pp | 30.1 | 26.2 | — |
+| yolov5nu | 0.3365 | 0.3293 | **−0.0072** | 38 | 271 | **7.1×** |
+| yolov5su | 0.4214 | 0.4124 | **−0.0090** | 35 | 175 | 4.9× |
+| yolov5mu | 0.4808 | 0.4696 | **−0.0112** | 30 | 88 | 3.0× |
+| yolov8n | 0.3671 | 0.3579 | **−0.0092** | 38 | 260 | 6.8× |
+| yolov8s | 0.4424 | 0.4315 | **−0.0109** | 37 | 158 | 4.3× |
+| yolov8m | 0.4944 | 0.4841 | **−0.0103** | 26 | 75 | 2.9× |
+| yolo11n | 0.3868 | 0.3780 | **−0.0088** | 40 | 245 | 6.2× |
+| yolo11s | 0.4587 | 0.4485 | **−0.0102** | 37 | 157 | 4.3× |
+| yolo11m | 0.5049 | 0.4956 | **−0.0093** | 31 | 77 | 2.5× |
+| yolo26n-classic | 0.4022 | 0.3971 | **−0.0051** | 40 | 251 | 6.3× |
+| yolo26s-classic | 0.4775 | 0.4714 | **−0.0061** | 36 | 155 | 4.3× |
+| yolo26m-classic | 0.5240 | 0.5180 | **−0.0060** | 30 | 77 | 2.5× |
+
+EdgeFirst runs **2.5–7.1×** the single-stream reference throughput at a **0.5–1.1 pp** box-AP cost — the same envelope as the RTX and macOS lanes.
 
 ## Segmentation
 
-| Variant | Ult box | proxy box | **Δ box** | Ult mask | proxy mask | **Δ mask** | Ult FPS | proxy FPS | EdgeFirst |
+| Variant | ref box | EdgeFirst box | **box Δ** | ref mask | EdgeFirst mask | **mask Δ** | ref FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| yolov8n-seg | 0.3603 | 0.3585 | +0.18 pp | 0.3019 | 0.2983 | +0.37 pp | 2.9 | 2.1 | — |
-| yolov8s-seg | 0.4391 | 0.4382 | +0.09 pp | 0.3633 | 0.3597 | +0.36 pp | 4.3 | 2.6 | — |
-| yolov8m-seg | 0.4895 | 0.4881 | +0.14 pp | 0.4029 | 0.3980 | +0.48 pp | 4.9 | 2.9 | — |
-| yolo11n-seg | 0.3826 | 0.3784 | +0.42 pp | 0.3190 | 0.3132 | +0.58 pp | 3.0 | 2.3 | — |
-| yolo11s-seg | 0.4559 | 0.4523 | +0.36 pp | 0.3744 | 0.3681 | +0.63 pp | 4.3 | 2.8 | — |
-| yolo26n-seg-classic | 0.3993 | 0.3950 | +0.43 pp | 0.3407 | 0.3356 | +0.52 pp | 4.1 | 2.6 | — |
-| yolo26s-seg-classic | 0.4730 | 0.4698 | +0.32 pp | 0.3998 | 0.3950 | +0.49 pp | 5.5 | 3.1 | — |
-| yolo26m-seg-classic | 0.5230 | 0.5215 | +0.14 pp | 0.4396 | 0.4362 | +0.34 pp | 5.3 | 3.3 | — |
+| yolov8n-seg | 0.3603 | 0.3602 | **−0.0001** | 0.3019 | 0.2918 | **−0.0101** | 2.9 | 76 | 26.0× |
+| yolov8s-seg | 0.4391 | 0.4387 | **−0.0004** | 0.3633 | 0.3484 | **−0.0149** | 4.3 | 87 | 20.0× |
+| yolov8m-seg | 0.4895 | 0.4869 | **−0.0026** | 0.4029 | 0.3814 | **−0.0215** | 4.9 | 57 | 11.6× |
+| yolo11n-seg | 0.3826 | 0.3811 | **−0.0015** | 0.3190 | 0.3077 | **−0.0113** | 3.0 | 79 | **26.5×** |
+| yolo11s-seg | 0.4559 | 0.4532 | **−0.0027** | 0.3744 | 0.3573 | **−0.0171** | 4.3 | 88 | 20.4× |
+| yolo26n-seg-classic | 0.3993 | 0.4007 | **+0.0014** | 0.3407 | 0.3318 | **−0.0089** | 4.1 | 95 | 23.3× |
+| yolo26s-seg-classic | 0.4730 | 0.4754 | **+0.0024** | 0.3998 | 0.3870 | **−0.0128** | 5.5 | 96 | 17.4× |
+| yolo26m-seg-classic | 0.5230 | 0.5255 | **+0.0025** | 0.4396 | 0.4250 | **−0.0146** | 5.3 | 53 | 9.9× |
 
-Proxy fidelity on the Orin holds the established envelope: **≤ 0.49 pp box / ≤ 0.63 pp mask**, FP16 TensorRT.
+Segmentation is where EdgeFirst wins biggest on the Orin: **9.9–26.5×** the single-stream reference. Box AP is at parity (Δ ≤ 0.3 pp — EdgeFirst even edges ahead on the yolo26 family); mask Δ is **0.9–2.1 pp**, the mask-decode residual flagged for the second-pass accuracy review. The yolo-validator proxy (the reference on targets Ultralytics can't run) tracks the Ultralytics validator on the Orin to **≤ 0.49 pp box / ≤ 0.63 pp mask** — see Part 2 for the full envelope.
 
 ## Per-stage latency
 
@@ -202,7 +202,7 @@ Full-integer TensorRT INT8 on the Orin is well-behaved for detection: box mAP dr
 
 # Part 1d — NXP i.MX 8M Plus (imx8mp-vsi, INT8 TFLite, VX delegate)
 
-The off-the-shelf path is the **vendor reference**: the standard Ultralytics full-integer INT8 TFLite (post-training quantization, 500 COCO **train2017** calibration images) run through the standard NXP runtime — the VeriSilicon **VX delegate** on the i.MX 8M Plus NPU — scored on-target by the portable **yolo-validator**. **EdgeFirst** runs the same architectures with its smart quantizer and overlapped pipeline. The comparison is the point: better accuracy, much higher throughput. EdgeFirst columns come from the current profiler catalog (provisional); `—` marks a cell not yet in it (pending the refresh).
+The off-the-shelf path is the **vendor reference**: the standard Ultralytics full-integer INT8 TFLite (post-training quantization, 500 COCO **train2017** calibration images) run through the standard NXP runtime — the VeriSilicon **VX delegate** on the i.MX 8M Plus NPU — scored on-target by the portable **yolo-validator**. Its low (sometimes near-zero) accuracy is a **known upstream INT8 limitation** — generic PTQ with a monolithic decode — which EdgeFirst's **smart quantizer** addresses. The **EdgeFirst** columns are that smart-quantizer TFLite artifact (`smart`, per-scale decode) from the current catalog — the accuracy-optimized variant, **not** the `combined`/monolithic one. `—` marks a model with no EdgeFirst `smart` run in the catalog.
 
 ## Vendor reference vs EdgeFirst — accuracy & throughput
 
@@ -210,20 +210,20 @@ Detection = box AP, segmentation = mask AP; full val2017. `crash` = the model cr
 
 | Model | FP32 | vendor INT8 | EdgeFirst | **Δ acc** | vendor FPS | EdgeFirst FPS |
 |---|--:|--:|--:|--:|--:|--:|
-| yolov8n | 0.3671 | 0.3285 | 0.3398 | **+1.1 pp** | 6.3 | — |
-| yolov8s | 0.4425 | 0.3975 | 0.4190 | **+2.2 pp** | 4.7 | 7.9 |
-| yolo11n | 0.3868 | 0.3364 | 0.3466 | **+1.0 pp** | 5.3 | — |
-| yolo11s | 0.4587 | 0.0213 | 0.0178 | — | 3.9 | 5.4 |
-| yolo26n | 0.4022 | 0.2989 | 0.3188 | **+2.0 pp** | 2.3 | — |
-| yolo26s | 0.4775 | crash | — | — | crash | — |
-| yolov8n-seg | 0.3020 | 0.2339 | 0.2714 | **+3.8 pp** | 1.5 | **11.2** |
-| yolov8s-seg | 0.3635 | 0.2736 | 0.3338 | **+6.0 pp** | 1.5 | **6.4** |
-| yolo11n-seg | 0.3190 | 0.2300 | 0.2661 | **+3.6 pp** | 1.5 | **8.7** |
-| yolo11s-seg | 0.3744 | 0.1914 | — | — | 1.4 | — |
-| yolo26n-seg | 0.3408 | 0.1137 | 0.2213 | **+10.8 pp** | 1.3 | **7.4** |
-| yolo26s-seg | 0.3998 | 0.0471 | — | — | 0.6 | — |
+| yolov8n | 0.3671 | 0.3285 | 0.3478 | **+1.9 pp** | 6.3 | 13.9 |
+| yolov8s | 0.4425 | 0.3975 | 0.4245 | **+2.7 pp** | 4.7 | 7.8 |
+| yolo11n | 0.3868 | 0.3364 | 0.3505 | **+1.4 pp** | 5.3 | 10.2 |
+| yolo11s | 0.4587 | 0.0213 | 0.0234 | — | 3.9 | 5.6 |
+| yolo26n | 0.4022 | 0.2989 | 0.3239 | **+2.5 pp** | 2.3 | 8.6 |
+| yolo26s | 0.4775 | crash | 0.3924 | — | crash | 4.6 |
+| yolov8n-seg | 0.3020 | 0.2339 | 0.2759 | **+4.2 pp** | 1.5 | **10.6** |
+| yolov8s-seg | 0.3635 | 0.2736 | 0.3386 | **+6.5 pp** | 1.5 | **6.3** |
+| yolo11n-seg | 0.3190 | 0.2300 | 0.2717 | **+4.2 pp** | 1.5 | **8.6** |
+| yolo11s-seg | 0.3744 | 0.1914 | 0.2219 | **+3.0 pp** | 1.4 | **4.8** |
+| yolo26n-seg | 0.3408 | 0.1137 | 0.2251 | **+11.1 pp** | 1.3 | **7.4** |
+| yolo26s-seg | 0.3998 | 0.0471 | 0.2069 | **+16.0 pp** | 0.6 | **3.9** |
 
-Where both ran, **EdgeFirst is more accurate and far faster**: accuracy gains of +1 to +6 pp on the clean models and **+10.8 pp on yolo26n-seg** (vendor 0.114 → EdgeFirst 0.221 — recovering most of what the generic quantizer lost), with segmentation throughput **4.3–7.5×** (yolov8n-seg 1.5 → 11.2 fps). The vendor reference also exposes the VX delegate's fragility — yolo11s collapses, yolo26s crashes — while EdgeFirst's runtime executes the family. (EdgeFirst detection FPS and the yolo11s/26s cells are not yet in the profiler catalog → pending refresh.)
+Where both ran, **EdgeFirst is more accurate and far faster**: box gains of +1.4 to +2.7 pp on detection and mask gains of +3.0 to +6.5 pp on the clean seg models, rising to **+11.1 pp on yolo26n-seg and +16.0 pp on yolo26s-seg** — the smart quantizer recovering most of what the generic vendor PTQ lost (yolo26s-seg 0.047 → 0.207). Segmentation throughput is **4–7×** (yolov8n-seg 1.5 → 10.6 fps). The vendor reference also exposes the VX delegate's fragility — yolo11s collapses to near-zero for **both** paths (a model the delegate simply cannot run), and yolo26s **crashes** the vendor runtime while EdgeFirst executes it at 0.392 box. `yolo11s` is left with no meaningful Δ (both near-zero).
 
 ## Per-stage latency & total validation time (yolov8n)
 
@@ -232,17 +232,17 @@ Where both ran, **EdgeFirst is more accurate and far faster**: accuracy gains of
 | Variant | lane | pre | inf | post | e2e (ms) | FPS | val2017 time |
 |---|---|--:|--:|--:|--:|--:|--:|
 | yolov8n | vendor INT8 | 27.9 | 75.0 | 55.0 | 157.9 | 6.3 | 13 min |
-| yolov8n | EdgeFirst † | 28.5 | 60.8 | 16.0 | 105.3 | — | — |
+| yolov8n | EdgeFirst | 33.2 | 61.1 | 19.1 | 113.5 | 13.9 | ~6 min |
 | yolov8n-seg | vendor INT8 | 28.3 | 96.2 | 563.4 | 687.9 | 1.4 | **59 min** |
-| yolov8n-seg | EdgeFirst † | 35.8 | 77.6 | 43.7 | 157.2 | **11.2** | **7 min** |
+| yolov8n-seg | EdgeFirst | 39.0 | 79.6 | 80.8 | 199.4 | **10.6** | **~8 min** |
 
-EdgeFirst's optimized postprocess collapses the segmentation mask stage (563 → 44 ms) and its overlapped pipeline lifts throughput **7.7×** — cutting a full val2017 segmentation pass from **59 min to ~7 min**. † EdgeFirst rows provisional / from the current catalog.
+EdgeFirst's optimized postprocess collapses the segmentation mask stage (563 → 81 ms) and its overlapped pipeline lifts throughput **7.6×** (1.4 → 10.6 fps) — cutting a full val2017 segmentation pass from **59 min to ~8 min**. EdgeFirst rows are the `smart` per-scale-decode artifact from the current catalog.
 
 ---
 
 # Part 1e — NXP i.MX 95 (imx95-neutron, INT8 TFLite, Neutron delegate)
 
-The vendor reference here is the same Ultralytics INT8 TFLite as Part 1d, recompiled to Neutron microcode with the standard eIQ **neutron-converter** and run on the i.MX 95 **Neutron NPU**, scored by yolo-validator. **EdgeFirst** runs the same architectures with its smart quantizer and pipelined runner — the comparison below shows the accuracy and throughput gains. EdgeFirst columns are from the current profiler catalog; `—` = pending the refresh.
+The vendor reference here is the same Ultralytics INT8 TFLite as Part 1d, recompiled to Neutron microcode with the standard eIQ **neutron-converter** and run on the i.MX 95 **Neutron NPU**, scored by yolo-validator — and it carries the same **upstream INT8 limitation**. The **EdgeFirst** columns are its **smart quantizer** (`smart`, per-scale decode; throughput pipeline) from the current catalog — not the `combined`/monolithic variant. Only the **yolov8** family is covered on this platform for now: **yolo11/26 on i.MX 95 Neutron is currently unsupported (under investigation with NXP)** and omitted until resolved.
 
 ## Vendor reference vs EdgeFirst — accuracy & throughput
 
@@ -251,19 +251,11 @@ Detection = box AP, segmentation = mask AP; full val2017.
 | Model | FP32 | vendor INT8 | EdgeFirst | **Δ acc** | vendor FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|--:|
 | yolov8n | 0.3671 | 0.3285 | 0.3434 | **+1.5 pp** | 6.5 | **76.5** | **11.7×** |
-| yolov8s | 0.4425 | 0.3967 | — | — | 5.9 | — | — |
-| yolo11n | 0.3868 | 0.0638 | — | — | 4.8 | — | — |
-| yolo11s | 0.4587 | 0.0007 | — | — | 5.6 | — | — |
-| yolo26n | 0.4022 | 0.0750 | — | — | 6.0 | — | — |
-| yolo26s | 0.4775 | 0.0004 | — | — | 4.3 | — | — |
-| yolov8n-seg | 0.3020 | 0.2331 | 0.2711 | **+3.8 pp** | 0.9 | **28.8** | **32×** |
-| yolov8s-seg | 0.3635 | 0.2723 | 0.3329 | **+6.1 pp** | 1.1 | **20.9** | **19×** |
-| yolo11n-seg | 0.3190 | 0.0260 | — | — | 1.4 | — | — |
-| yolo11s-seg | 0.3744 | 0.0002 | — | — | 5.6 | — | — |
-| yolo26n-seg | 0.3408 | 0.0316 | — | — | 2.3 | — | — |
-| yolo26s-seg | 0.3998 | 0.0000 | — | — | 4.5 | — | — |
+| yolov8s | 0.4425 | 0.3967 | 0.4229 | **+2.6 pp** | 5.9 | **27.4** | **4.6×** |
+| yolov8n-seg | 0.3020 | 0.2331 | 0.2763 | **+4.3 pp** | 0.9 | **23.7** | **26×** |
+| yolov8s-seg | 0.3635 | 0.2723 | 0.3376 | **+6.5 pp** | 1.1 | **20.8** | **19×** |
 
-For the yolov8 family — the only models the vendor Neutron path runs correctly — **EdgeFirst is both more accurate (+1.5 to +6.1 pp) and dramatically faster: detection 11.7×, segmentation 19–32×**. The vendor Neutron converter **catastrophically miscompiles every yolo11/26 model to near-zero** (it maps the graphs only partially — yolo26 maps ~10 ops — producing numerically broken output, while the source INT8 files score 0.43–0.51 box on a reference CPU). EdgeFirst's yolo11/26 i.MX 95 runs are not yet in the profiler catalog → pending refresh, but the pattern is set: only yolov8 is usable off-the-shelf, whereas EdgeFirst's tooling runs the family.
+For the yolov8 family, **EdgeFirst is both more accurate (+1.5 to +6.5 pp) and dramatically faster: detection 4.6–11.7×, segmentation 19–26×**. **yolo11/26 on the i.MX 95 Neutron path is currently unsupported — under investigation with NXP — and is omitted here until it is resolved.**
 
 ## Per-stage latency & total validation time (yolov8n)
 
@@ -272,46 +264,46 @@ For the yolov8 family — the only models the vendor Neutron path runs correctly
 | Variant | lane | pre | inf | post | e2e (ms) | FPS | val2017 time |
 |---|---|--:|--:|--:|--:|--:|--:|
 | yolov8n | vendor INT8 | 44.7 | 42.7 | 65.7 | 153.1 | 6.5 | 13 min |
-| yolov8n | EdgeFirst † | 11.6 | 45.5 | 16.3 | 73.3 | **76.5** | **1 min** |
+| yolov8n | EdgeFirst | 11.6 | 45.5 | 16.2 | 73.3 | **76.5** | **1 min** |
 | yolov8n-seg | vendor INT8 | 37.7 | 54.4 | 1014.2 | 1106.3 | 0.9 | **93 min** |
-| yolov8n-seg | EdgeFirst † | 16.1 | 23.1 | 58.2 | 97.4 | **28.8** | **3 min** |
+| yolov8n-seg | EdgeFirst | 17.6 | 24.8 | 123.8 | 166.2 | **23.7** | **~4 min** |
 
-EdgeFirst improves both axes from its highly-optimized pre/postprocess and overlapped pipeline: **end-to-end latency** (seg per-frame 1106 → 97 ms — mask postprocess 1014 → 58 ms) **and throughput** (seg 0.9 → 28.8 fps = 32×, detection 6.5 → 76.5 fps = 11.7×) — cutting a full val2017 segmentation pass from **93 min to ~3 min**. † EdgeFirst rows from the current catalog.
+EdgeFirst improves both axes from its highly-optimized pre/postprocess and overlapped pipeline: **end-to-end latency** (seg per-frame 1106 → 166 ms — mask postprocess 1014 → 124 ms) **and throughput** (seg 0.9 → 23.7 fps = 26×, detection 6.5 → 76.5 fps = 11.7×) — cutting a full val2017 segmentation pass from **93 min to ~4 min**. EdgeFirst rows are the `smart` per-scale-decode artifact from the current catalog.
 
 ---
 
 # Part 1f — EdgeFirst on Apple M2 Max (macos-onnx-coreml, CoreML ANE, FP16)
 
-The macOS lane runs **both sides FP16 on the Apple M2 Max Neural Engine** (CoreML), so hardware *and* runtime are matched: EdgeFirst (ONNX Runtime CoreML EP → ANE) vs the **Ultralytics validator running natively on the same ANE** — a `.mlpackage` exported `half=True`, which coremltools dispatches to `CPU_AND_NE`. The model set is exactly the 15 variants EdgeFirst publishes for `macos-onnx-coreml-ane` (8 detect / 7 segment). yolo26 uses the **classical (`end2end=False`) head** EdgeFirst standardizes on, matching every other platform — verified from the cached profiler artifacts (EdgeFirst's ANE yolo26 ONNX are classical-shaped, `[1,84,8400]` detect / `[1,116,8400]`+proto segment, and their AP matches EdgeFirst's x86 classical exactly: ANE yolo26n det 39.68 ≡ x86 39.69, yolo26s 47.12 ≡ 47.12) — see [YOLO26.md](YOLO26.md). EdgeFirst AP is the published model-zoo FP16 number; the FP16 reference ≈ its FP32 ONNX anchor to ≤ 0.1 pp (both recorded in `benchmarks/metrics/macos-onnx-coreml.json`). EdgeFirst FPS is the published median (pipelined) throughput; reference FPS is single-stream wall-clock. speedup = EdgeFirst FPS ÷ Ultralytics FPS<sub>wall</sub>. Host: Apple M2 Max, macOS, ultralytics 8.4.75 / onnxruntime 1.27.0 (CoreML EP) / torch 2.12.1. Parity: `conf=0.001 iou=0.7 max_det=300 imgsz=640 rect=False batch=1`.
+The macOS lane runs **both sides FP16 on the Apple M2 Max Neural Engine** (CoreML), so hardware *and* runtime are matched: EdgeFirst (ONNX Runtime CoreML EP → ANE) vs the **Ultralytics validator running natively on the same ANE** — a `.mlpackage` exported `half=True`, which coremltools dispatches to `CPU_AND_NE`. The model set is exactly the 15 variants EdgeFirst publishes for `macos-onnx-coreml-ane` (8 detect / 7 segment). yolo26 uses the **classical (`end2end=False`) head** EdgeFirst standardizes on, matching every other platform — verified from the cached profiler artifacts by ONNX **output shape** (classical-shaped `[1,84,8400]` detect / `[1,116,8400]`+proto segment, not the NMS-free head; the head is confirmed by shape, not AP), and the FP16 ANE classical AP tracks the x86 classical lane within the FP16/ANE tolerance — see [YOLO26.md](YOLO26.md). EdgeFirst AP is the published model-zoo **FP16 ANE** number from the current catalog; the FP16 reference ≈ its FP32 ONNX anchor to ≤ 0.1 pp (both recorded in `benchmarks/metrics/macos-onnx-coreml.json`). EdgeFirst FPS is the published median (pipelined) throughput; reference FPS is single-stream wall-clock. speedup = EdgeFirst FPS ÷ Ultralytics FPS<sub>wall</sub>. Host: Apple M2 Max, macOS, ultralytics 8.4.75 / onnxruntime 1.27.0 (CoreML EP) / torch 2.12.1. Parity: `conf=0.001 iou=0.7 max_det=300 imgsz=640 rect=False batch=1`.
 
 ## Detection
 
 | Variant | reference box | EdgeFirst box | **EdgeFirst Δ** | ref FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|
-| yolov5nu | 0.3370 | 0.3289 | **−0.0081** | 61 | 802 | **13.2×** |
-| yolov5su | 0.4224 | 0.4116 | **−0.0108** | 61 | 377 | 6.2× |
-| yolov8n | 0.3672 | 0.3583 | **−0.0089** | 62 | 750 | 12.1× |
-| yolov8s | 0.4425 | 0.4322 | **−0.0103** | 60 | 327 | 5.5× |
-| yolo11n | 0.3866 | 0.3782 | **−0.0084** | 63 | 720 | 11.5× |
-| yolo11s | 0.4584 | 0.4488 | **−0.0096** | 58 | 329 | 5.7× |
-| yolo26n | 0.4020 | 0.3968 | **−0.0052** | 66 | 746 | 11.2× |
-| yolo26s | 0.4770 | 0.4712 | **−0.0058** | 61 | 310 | 5.1× |
+| yolov5nu | 0.3370 | 0.3242 | **−0.0128** | 61 | 812 | **13.3×** |
+| yolov5su | 0.4224 | 0.4068 | **−0.0156** | 61 | 394 | 6.5× |
+| yolov8n | 0.3672 | 0.3552 | **−0.0120** | 62 | 791 | 12.8× |
+| yolov8s | 0.4425 | 0.4278 | **−0.0147** | 60 | 343 | 5.7× |
+| yolo11n | 0.3866 | 0.3749 | **−0.0117** | 63 | 783 | 12.5× |
+| yolo11s | 0.4584 | 0.4420 | **−0.0164** | 58 | 342 | 5.9× |
+| yolo26n | 0.4020 | 0.3935 | **−0.0085** | 66 | 800 | 12.1× |
+| yolo26s | 0.4770 | 0.4631 | **−0.0139** | 61 | 321 | 5.3× |
 
-EdgeFirst runs **5.1–13.2×** the single-stream throughput at a **≤ 1.1 pp** box-AP cost. All YOLO26 rows are the classical (`end2end=False`) head EdgeFirst standardizes on — box Δ −0.5 to −0.6 pp, matching the x86 classical pattern (the NMS-free head it replaced gave a misleading near-zero delta against an NMS-free reference; see [YOLO26.md](YOLO26.md)).
+EdgeFirst runs **5.3–13.3×** the single-stream throughput at a **0.9–1.6 pp** box-AP cost. All YOLO26 rows are the classical (`end2end=False`) head EdgeFirst standardizes on — box Δ −0.9 to −1.4 pp, in line with the other detection models on this lane (the NMS-free head it replaced gave a misleading near-zero delta against an NMS-free reference; see [YOLO26.md](YOLO26.md)).
 
 ## Segmentation
 
 | Variant | ref box | EdgeFirst box | **box Δ** | ref mask | EdgeFirst mask | **mask Δ** | ref FPS | EdgeFirst FPS | speedup |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| yolov8n-seg | 0.3604 | 0.3513 | **−0.0091** | 0.3018 | 0.2846 | **−0.0172** | 6.6 | 423 | **63.7×** |
+| yolov8n-seg | 0.3604 | 0.3513 | **−0.0091** | 0.3018 | 0.2846 | **−0.0172** | 6.6 | 423 | **63.6×** |
 | yolov8m-seg | 0.4892 | 0.4722 | **−0.0170** | 0.4023 | 0.3710 | **−0.0313** | 9.2 | 111 | 12.1× |
-| yolo11s-seg | 0.4553 | 0.4411 | **−0.0142** | 0.3738 | 0.3489 | **−0.0249** | 9.0 | 254 | 28.3× |
-| yolo11m-seg | 0.5046 | 0.4877 | **−0.0169** | 0.4132 | — | — | 9.8 | 102 | 10.4× |
-| yolo26n-seg | 0.3985 | 0.3913 | **−0.0072** | 0.3399 | 0.3247 | **−0.0152** | 8.4 | 458 | 54.2× |
+| yolo11s-seg | 0.4553 | 0.4411 | **−0.0142** | 0.3738 | 0.3489 | **−0.0249** | 9.0 | 254 | 28.2× |
+| yolo11m-seg | 0.5046 | 0.4877 | **−0.0169** | 0.4132 | 0.3829 | **−0.0303** | 9.8 | 79 | 8.1× |
+| yolo26n-seg | 0.3985 | 0.3913 | **−0.0072** | 0.3399 | 0.3247 | **−0.0152** | 8.4 | 457 | 54.2× |
 | yolo26s-seg | 0.4725 | 0.4632 | **−0.0093** | 0.3993 | 0.3787 | **−0.0206** | 9.4 | 217 | 23.2× |
 | yolo26m-seg | 0.5220 | 0.5024 | **−0.0196** | 0.4393 | 0.4081 | **−0.0312** | 9.7 | 74 | 7.6× |
 
-Segmentation is where the pipeline detonates: **7.6–63.7×** the single-stream reference, because the Ultralytics mask postprocess collapses to ~7–11 FPS even on the ANE while EdgeFirst overlaps decode/inference/mask across workers. Box Δ is **≤ 2.0 pp**; mask Δ is **1.5–3.1 pp** across the (now uniformly classical-head) seg models — a mask-decode gap flagged for the second-pass accuracy review (recorded, not a release blocker). EdgeFirst publishes no mask AP for yolo11m-seg (perf-only).
+Segmentation is where the pipeline detonates: **7.6–63.6×** the single-stream reference, because the Ultralytics mask postprocess collapses to ~7–11 FPS even on the ANE while EdgeFirst overlaps decode/inference/mask across workers. Box Δ is **≤ 2.0 pp**; mask Δ is **1.5–3.1 pp** across the (uniformly classical-head) seg models — a mask-decode gap flagged for the second-pass accuracy review (recorded, not a release blocker).
 
 ## Validation throughput — the headline
 

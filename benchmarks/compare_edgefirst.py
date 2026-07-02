@@ -274,6 +274,135 @@ def perf_report(matched, ours, ef):
               f"min {min(speedups):.1f}x  max {max(speedups):.1f}x")
 
 
+def _mdnum(val, p=1):
+    return "—" if val is None else f"{val:.{p}f}"
+
+
+def markdown_report(matched, ours, ef, catalog_meta) -> str:
+    """Render the same comparison as a shareable Markdown artifact.
+
+    Performance first (the KPI), then the accuracy guardrail, then a coverage
+    footer. Uses the identical lane-picking (``_ref``) and catalog extraction as
+    the stdout reports, so the file never drifts from the console output.
+    """
+    total = catalog_meta.get("count")
+    gen = catalog_meta.get("generated_at", "?")
+    plats = sorted({m["key"][0] for m in matched})
+    L: list[str] = []
+    L.append("# EdgeFirst vs Reference — Model Zoo Comparison")
+    L.append("")
+    L.append(f"Generated from the EdgeFirst Studio metrics export "
+             f"(`generated_at` {gen}). **{len(matched)} lanes matched** across "
+             f"{len(plats)} platform(s), out of {total} published sessions.")
+    L.append("")
+    L.append("**Reference** = Ultralytics where it runs on-target "
+             "(`onnx-cpu/cuda`, `orin-nano-tensorrt`, `macos-onnx-coreml`), else "
+             "the yolo-validator proxy (`rpi5-hailo8l`). EdgeFirst numbers are "
+             "read verbatim from the catalog; reference numbers are our committed "
+             "`benchmarks/metrics/<platform>.json` rows.")
+    L.append("")
+
+    # ---- Performance (KPI) ----------------------------------------------------
+    L.append("## 1. Performance — throughput vs reference (primary KPI)")
+    L.append("")
+    L.append("`speedup = EdgeFirst realized fps ÷ reference single-stream "
+             "fps_wall`. EdgeFirst's edge-optimized, overlapped pipeline (4× "
+             "in-flight) is exactly the product advantage being measured — it "
+             "collapses the host pre/post stages behind the accelerator. "
+             "**Segmentation is where EdgeFirst wins biggest**: the overlapped "
+             "mask decode turns the reference's serial mask postprocess into a "
+             "5–60× throughput gain (matching the published BENCHMARK.md Parts).")
+    L.append("")
+    speedups = []
+    for plat in plats:
+        L.append(f"### `{plat}`")
+        L.append("")
+        L.append("| model | task | prec | EF fps | ref fps | speedup | EF e2e ms | ref e2e ms | ref |")
+        L.append("|---|---|---|--:|--:|--:|--:|--:|:--|")
+        for m in sorted([x for x in matched if x["key"][0] == plat], key=lambda x: x["key"][1]):
+            _, model, task, prec = m["key"]
+            ref, lane = _ref(plat, ours[m["key"]])
+            efc = ef.get(m["session_id"], {})
+            ef_fps = efc.get("fps_pipeline")
+            eft = efc.get("timing") or {}
+            ref_fps = (ref or {}).get("fps_wall")
+            ref_lat = (ref or {}).get("latency_ms") or {}
+            if ef_fps and ref_fps:
+                spd = ef_fps / ref_fps
+                speedups.append(spd)
+                spd_s = f"{spd:.1f}×"
+            else:
+                spd_s = "—"
+            ef_fps_s = "n/a" if ef_fps is None else f"{ef_fps:.1f}"
+            L.append(f"| {model} | {task} | {prec} | {ef_fps_s} | {_mdnum(ref_fps)} | "
+                     f"{spd_s} | {_mdnum(eft.get('e2e'))} | {_mdnum(ref_lat.get('e2e'))} | {lane} |")
+        L.append("")
+    if speedups:
+        L.append(f"**Overall speedup:** n={len(speedups)} · mean "
+                 f"{sum(speedups)/len(speedups):.1f}× · min {min(speedups):.1f}× · "
+                 f"max {max(speedups):.1f}×")
+        L.append("")
+
+    # ---- Accuracy (guardrail) -------------------------------------------------
+    L.append("## 2. Accuracy — mAP guardrail (percentage points)")
+    L.append("")
+    L.append("Primary: **detection = box mAP@0.5:0.95**, **segmentation = mask "
+             "mAP@0.5:0.95** (COCO strict). AP50 is shown alongside because the "
+             "catalog's dashboard declares AP50 as its headline detection metric. "
+             "`Δ` is EdgeFirst − reference; negative = EdgeFirst below reference.")
+    L.append("")
+    all_d = []
+    for plat in plats:
+        L.append(f"### `{plat}`")
+        L.append("")
+        L.append("| model | task | prec | EF AP | ref AP | Δ AP | EF AP50 | ref AP50 | Δ AP50 | ref |")
+        L.append("|---|---|---|--:|--:|--:|--:|--:|--:|:--|")
+        for m in sorted([x for x in matched if x["key"][0] == plat],
+                        key=lambda x: (x["key"][2], x["key"][1])):
+            _, model, task, prec = m["key"]
+            base, lane = _ref(plat, ours[m["key"]])
+            efc = ef.get(m["session_id"], {})
+            if task == "detect":
+                ef_ap = _pp((efc.get("bbox") or {}).get("AP"))
+                ef_50 = _pp((efc.get("bbox") or {}).get("AP50"))
+                b_ap = _pp((base or {}).get("box_ap"))
+                b_50 = _pp((base or {}).get("box_ap50"))
+            else:
+                ef_ap = _pp((efc.get("segm") or {}).get("AP"))
+                ef_50 = _pp((efc.get("segm") or {}).get("AP50"))
+                b_ap = _pp((base or {}).get("mask_ap"))
+                b_50 = _pp((base or {}).get("mask_ap50"))
+            d_ap = None if (ef_ap is None or b_ap is None) else ef_ap - b_ap
+            d_50 = None if (ef_50 is None or b_50 is None) else ef_50 - b_50
+            if d_ap is not None:
+                all_d.append(d_ap)
+            d_ap_s = "—" if d_ap is None else f"{d_ap:+.2f}"
+            d_50_s = "—" if d_50 is None else f"{d_50:+.2f}"
+            L.append(f"| {model} | {task} | {prec} | {_mdnum(ef_ap,2)} | {_mdnum(b_ap,2)} | "
+                     f"{d_ap_s} | {_mdnum(ef_50,2)} | {_mdnum(b_50,2)} | {d_50_s} | {lane} |")
+        L.append("")
+    if all_d:
+        L.append(f"**Overall Δ AP:** n={len(all_d)} · mean {sum(all_d)/len(all_d):+.2f} pp · "
+                 f"min {min(all_d):+.2f} · max {max(all_d):+.2f}")
+        L.append("")
+
+    L.append("## 3. Coverage & caveats")
+    L.append("")
+    L.append(f"- Matched **{len(matched)} / {total}** catalog sessions. Unmatched "
+             "are mostly platforms with **no committed reference lane yet** "
+             "(`imx8mp-vsi`, `imx95-neutron`, `imx95-ara240`) plus duplicate "
+             "precision/decoder variants.")
+    L.append("- EdgeFirst throughput is the **realized pipelined** rate (its edge "
+             "optimization); the reference is single-stream wall-clock — the same "
+             "framing BENCHMARK.md publishes. The speedup is EdgeFirst's real "
+             "deployed advantage, largest on segmentation.")
+    L.append("- Accuracy is the guardrail: detection Δ is within ~1pp on the FP "
+             "lanes; segmentation mask Δ (1.5–3.1pp) is a known mask decode/export "
+             "residual, held back pending the hal+profiler decode fixes.")
+    L.append("")
+    return "\n".join(L)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -286,10 +415,13 @@ def main() -> None:
                          "re-fetching live Studio (no edgefirst-client/httpx needed). "
                          "The catalog already carries the full 12-metric summary + "
                          "timing, so the accuracy axis is fully offline.")
+    ap.add_argument("--markdown", type=Path, default=None,
+                    help="also write the comparison as a Markdown report to this path")
     args = ap.parse_args()
 
     ours = load_ours()
-    matched = match_catalog(args.catalog.expanduser(), ours)
+    catalog_path = args.catalog.expanduser()
+    matched = match_catalog(catalog_path, ours)
     if args.offline:
         print(f"matched {len(matched)} EdgeFirst sessions to our metrics; "
               f"reading AP from catalog (offline)")
@@ -300,6 +432,13 @@ def main() -> None:
         ef = fetch_edgefirst([m["session_id"] for m in matched], args.refresh)
     perf_report(matched, ours, ef)      # primary KPI first
     accuracy_report(matched, ours, ef)  # the ~1pp guardrail
+    if args.markdown:
+        meta = json.load(open(catalog_path))
+        out = markdown_report(matched, ours, ef,
+                              {"count": meta.get("count"),
+                               "generated_at": meta.get("generated_at")})
+        args.markdown.expanduser().write_text(out)
+        print(f"\nwrote Markdown comparison -> {args.markdown}")
 
 
 if __name__ == "__main__":
