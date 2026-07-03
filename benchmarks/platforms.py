@@ -40,6 +40,9 @@ Canonical metrics schema (``benchmarks/metrics/<platform>.json``)::
           "mask_ap": null, "mask_ap50": null,
           "fps_wall": 0.0,
           "latency_ms": {"pre": 0.0, "inf": 0.0, "post": 0.0, "e2e": 0.0},
+                                         # + optional "npu": {"h2d","core","d2h"}
+                                         #   driver sub-timings (Ara240: DMA in,
+                                         #   core NPU compute, DMA out — means)
           "n_images": 5000,
           "batch": 1                   # inference batch size (1 = single-stream)
         }
@@ -122,6 +125,7 @@ CONFIG_LANE = {
     "yv-tensorrt": ("yolo-validator", "tensorrt"),
     "yv-hailo":    ("yolo-validator", "hailo"),
     "yv-tflite":   ("yolo-validator", "tflite"),
+    "yv-ara2":     ("yolo-validator", "ara2"),
 }
 
 

@@ -171,3 +171,34 @@ def test_cli_entry_importable_without_dvapi(monkeypatch):
     import benchmarks.ara2_infer as m
     assert hasattr(m, "main") and hasattr(m, "worker") \
         and hasattr(m, "orchestrate")
+
+
+def test_normalize_yv_ara2_row(tmp_path, monkeypatch):
+    from benchmarks.normalize import normalize
+    doc = {"label": "yolov8n-seg", "task": "segment",
+           "host": {"machine": "aarch64", "device": "imx95-ara240"},
+           "configs": {"yv-ara2": {
+               "bbox": {"AP": 0.30, "AP50": 0.47},
+               "segm": {"AP": 0.26, "AP50": 0.44},
+               "timing": {"preprocess": 20.0, "inference": 18.0,
+                          "postprocess": 200.0, "e2e": 238.0},
+               "npu": {"h2d": 2.2, "core": 4.4, "d2h": 4.7},
+               "fps_wall": 4.0, "n_images": 5000, "batch": 1,
+               "vendor": "nxp-hf-2.0.4",
+               "artifact": "yolov8n-seg.dvm"}}}
+    rd = tmp_path / "results"
+    rd.mkdir()
+    (rd / "benchmark_a_yolov8n-seg_x.json").write_text(json.dumps(doc))
+    monkeypatch.chdir(tmp_path)
+    normalize(str(rd), "imx95-ara240", precision="INT8",
+              quant_method="kinara-sdk", calib="coco-val2017")
+    out = json.loads((tmp_path / "benchmarks/metrics/imx95-ara240.json")
+                     .read_text())
+    rows = [r for r in out["rows"] if r["variant"] == "yolov8n-seg"]
+    assert len(rows) == 1
+    r = rows[0]
+    assert r["workflow"] == "vendor:nxp-hf-2.0.4"   # cfg-level override
+    assert r["engine"] == "ara2" and r["validator"] == "yolo-validator"
+    assert r["latency_ms"]["npu"] == {"h2d": 2.2, "core": 4.4, "d2h": 4.7}
+    assert r["latency_ms"]["inf"] == 18.0
+    assert r["precision"] == "INT8" and r["lane"] == "baseline"

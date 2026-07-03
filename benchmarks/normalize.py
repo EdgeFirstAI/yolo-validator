@@ -28,6 +28,16 @@ def _row(variant, task, precision, quant, validator, engine, vendor, cfg):
     bbox = cfg.get("bbox") or {}
     segm = cfg.get("segm") or {}
     tm = cfg.get("timing") or {}
+    # Per-config provenance override: multi-artifact lanes (yv-ara2) stamp the
+    # vendor workflow into each result doc so one results dir can hold rows
+    # from several vendor artifact sets.
+    vendor = cfg.get("vendor") or vendor
+    latency = {
+        "pre": tm.get("preprocess"), "inf": tm.get("inference"),
+        "post": tm.get("postprocess"), "e2e": tm.get("e2e"),
+    }
+    if cfg.get("npu"):
+        latency["npu"] = cfg["npu"]  # driver sub-timings: {"h2d","core","d2h"}
     return {
         "model": model_of(variant),
         "variant": variant,
@@ -43,10 +53,7 @@ def _row(variant, task, precision, quant, validator, engine, vendor, cfg):
         "mask_ap": segm.get("AP"),
         "mask_ap50": segm.get("AP50"),
         "fps_wall": cfg.get("fps_wall"),
-        "latency_ms": {
-            "pre": tm.get("preprocess"), "inf": tm.get("inference"),
-            "post": tm.get("postprocess"), "e2e": tm.get("e2e"),
-        },
+        "latency_ms": latency,
         "n_images": cfg.get("n_images"),
         # Inference batch size (1 = single-stream latency reference); defaults for
         # older results that predate the field.
