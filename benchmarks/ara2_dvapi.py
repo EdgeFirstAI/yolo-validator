@@ -104,11 +104,19 @@ def _dvApiObj():
                 soname = ctypes.util.find_library("araclient_x86_64")
             else:
                 soname = ctypes.util.find_library("araclient_aarch64")
+                # Newer BSPs (imx95 frdm) ship a versioned soname without the
+                # arch suffix: /usr/lib/libaraclient.so.1.2.1 (+ .so.1 link).
+                if not soname:
+                    soname = ctypes.util.find_library("araclient")
                 # find_library may return None if ldconfig doesn't index it;
                 # try well-known system paths directly
                 if not soname:
                     for candidate in ["/usr/lib/libaraclient_aarch64.so",
-                                      "/usr/local/lib/libaraclient_aarch64.so"]:
+                                      "/usr/local/lib/libaraclient_aarch64.so",
+                                      "/usr/lib/libaraclient.so.1",
+                                      "/usr/lib/libaraclient.so",
+                                      "/usr/local/lib/libaraclient.so.1",
+                                      "/usr/local/lib/libaraclient.so"]:
                         if os.path.exists(candidate):
                             soname = candidate
                             break
