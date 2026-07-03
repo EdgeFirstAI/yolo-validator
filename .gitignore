@@ -50,3 +50,7 @@ htmlcov/
 full5k.log
 full5k.DONE
 full5k.FAIL
+
+# Local agent planning docs (never commit)
+docs/superpowers/
+.superpowers/
