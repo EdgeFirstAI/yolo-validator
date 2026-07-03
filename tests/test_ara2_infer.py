@@ -6,7 +6,7 @@ import pytest
 
 from benchmarks.ara2_infer import (
     STAGE_KEYS, _decode_outputs, _infer_role, _stats,
-    _strip_trailing_ones, _to_nc,
+    _strip_trailing_ones, _to_nc, _merge_partials, _build_doc,
 )
 from yolo_validator.coco_output import coco80_to_coco91
 from yolo_validator.letterbox import LetterboxInfo
@@ -118,3 +118,48 @@ def test_decode_empty_below_threshold():
                            _lb_identity(), 1, coco80_to_coco91(),
                            score_th=0.001)
     assert recs == []
+
+
+def _fake_partial(tmp_path, start, count, wall):
+    d = {"start": start, "count": count, "wall_s": wall, "imgsz": 640,
+         "preds": [{"image_id": start + i, "category_id": 1,
+                    "bbox": [0, 0, 10, 10], "score": 0.5}
+                   for i in range(count)],
+         "timings": {k: [1.0] * count for k in STAGE_KEYS}}
+    p = tmp_path / f"partial_{start:06d}.json"
+    p.write_text(json.dumps(d))
+    return p
+
+
+def test_merge_partials(tmp_path):
+    p1 = _fake_partial(tmp_path, 0, 3, 1.5)
+    p2 = _fake_partial(tmp_path, 3, 2, 1.0)
+    merged = _merge_partials([p2, p1])          # order-independent
+    assert merged["n_images"] == 5
+    assert merged["wall_s"] == pytest.approx(2.5)
+    assert len(merged["preds"]) == 5
+    assert merged["preds"][0]["image_id"] == 0  # sorted by start
+    assert len(merged["timings"]["npu_core"]) == 5
+
+
+def test_build_doc_schema(tmp_path):
+    merged = _merge_partials([_fake_partial(tmp_path, 0, 4, 2.0)])
+    merged["meta"] = {"model": "yolov8n", "task": "detect",
+                      "vendor": "kinara-sdk-1.2.1",
+                      "artifact": "yolov8n-kinara-1.2.1.dvm",
+                      "device": "imx95-ara240", "chunks": 1,
+                      "chunk_retries": 0,
+                      "host": {"machine": "aarch64", "node": "t",
+                               "system": "linux", "device": "imx95-ara240"}}
+    metrics = {"bbox": {"AP": 0.3, "AP50": 0.5}}
+    doc = _build_doc(merged, metrics)
+    assert doc["label"] == "yolov8n" and doc["task"] == "detect"
+    cfg = doc["configs"]["yv-ara2"]
+    assert cfg["bbox"]["AP"] == 0.3
+    assert cfg["npu"] == {"h2d": pytest.approx(1.0), "core": pytest.approx(1.0),
+                          "d2h": pytest.approx(1.0)}
+    assert cfg["timing"]["e2e"] == pytest.approx(1.0)
+    assert cfg["fps_wall"] == pytest.approx(2.0)
+    assert cfg["vendor"] == "kinara-sdk-1.2.1"
+    assert cfg["batch"] == 1 and cfg["n_images"] == 4
+    assert cfg["stats"]["inference"]["p99"] == pytest.approx(1.0)

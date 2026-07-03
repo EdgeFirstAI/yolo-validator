@@ -164,3 +164,76 @@ def _decode_outputs(outputs, imgsz, lb, image_id, class_map, score_th,
     det = Detections(boxes=unletterbox_boxes(box_lb, lb), scores=sc,
                      classes=cls)
     return detections_to_coco(image_id, det, class_map, None)
+
+
+def _list_images(coco_val, limit: int) -> list[Path]:
+    images = sorted(Path(coco_val).expanduser().glob("*.jpg"))
+    return images[:limit] if limit else images
+
+
+def _merge_partials(paths) -> dict:
+    parts = sorted((json.loads(Path(p).read_text()) for p in paths),
+                   key=lambda d: d["start"])
+    if not parts:
+        raise SystemExit("no partial results to merge")
+    merged = {"preds": [], "timings": {k: [] for k in STAGE_KEYS},
+              "wall_s": 0.0, "n_images": 0, "imgsz": parts[0]["imgsz"]}
+    for d in parts:
+        merged["preds"].extend(d["preds"])
+        merged["wall_s"] += d["wall_s"]
+        merged["n_images"] += d["count"]
+        for k in STAGE_KEYS:
+            merged["timings"][k].extend(d["timings"].get(k, []))
+    return merged
+
+
+def _build_doc(merged: dict, metrics: dict | None) -> dict:
+    meta, tm = merged["meta"], merged["timings"]
+    cfg = {
+        "bbox": (metrics or {}).get("bbox"),
+        "segm": (metrics or {}).get("segm"),
+        "timing": {"preprocess": _mean(tm["preprocess"]),
+                   "inference": _mean(tm["inference"]),
+                   "postprocess": _mean(tm["postprocess"]),
+                   "e2e": _mean(tm["e2e"])},
+        "npu": {"h2d": _mean(tm["npu_h2d"]), "core": _mean(tm["npu_core"]),
+                "d2h": _mean(tm["npu_d2h"])},
+        "stats": {k: _stats(tm[k]) for k in STAGE_KEYS},
+        "fps_wall": (merged["n_images"] / merged["wall_s"]
+                     if merged["wall_s"] else None),
+        "n_images": merged["n_images"], "batch": 1,
+        "vendor": meta["vendor"], "artifact": meta["artifact"],
+        "chunks": meta["chunks"], "chunk_retries": meta["chunk_retries"],
+    }
+    return {"label": meta["model"], "task": meta["task"],
+            "host": meta["host"], "configs": {"yv-ara2": cfg}}
+
+
+def finalize(merged_path, gt, out_dir) -> Path:
+    """Score a merged predictions file and emit the benchmark_a document.
+
+    Runs anywhere with pycocotools — lets the target run --no-eval and the
+    host do the scoring.
+    """
+    merged = json.loads(Path(merged_path).read_text())
+    meta = merged["meta"]
+    from benchmarks.canonical_eval import canonical_eval
+    iou_types = ("bbox", "segm") if meta["task"] == "segment" else ("bbox",)
+    print(f"[ara2_infer] scoring {len(merged['preds'])} dets over "
+          f"{merged['n_images']} images…")
+    metrics = canonical_eval(str(Path(gt).expanduser()), merged["preds"],
+                             iou_types=iou_types)
+    doc = _build_doc(merged, metrics)
+    out_dir = Path(out_dir).expanduser()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    out_path = out_dir / f"benchmark_a_{meta['model']}_{ts}.json"
+    out_path.write_text(json.dumps(doc, indent=2))
+    cfg, b = doc["configs"]["yv-ara2"], metrics["bbox"]
+    mask = (f" mask AP={metrics['segm']['AP']:.4f}"
+            if metrics.get("segm") else "")
+    print(f"[ara2_infer] {meta['model']} [{meta['vendor']}]: "
+          f"box AP={b['AP']:.4f} AP50={b['AP50']:.4f}{mask} | "
+          f"{cfg['fps_wall']:.2f} fps | inf {cfg['timing']['inference']:.1f} ms "
+          f"(npu core {cfg['npu']['core'] or float('nan'):.2f} ms) -> {out_path}")
+    return out_path
