@@ -113,13 +113,10 @@ def _infer_role(shape, seen: set) -> str:
 
 
 def _to_nc(a: np.ndarray) -> np.ndarray:
-    """(1,C,N) | (C,N) | (N,C) → (N,C)."""
+    """(1,C,N) | (C,N) | (N,C) → (N,C), assuming C < N."""
     if a.ndim == 3:
         a = a[0]
-    # Transpose if C < N, or if first dim matches known channel sizes (2,4,32,80)
-    if a.ndim == 2 and (a.shape[0] < a.shape[1] or a.shape[0] in (2, 4, 32, 80)):
-        return a.T
-    return a
+    return a.T if a.shape[0] < a.shape[1] else a
 
 
 def _decode_outputs(outputs, imgsz, lb, image_id, class_map, score_th,
@@ -135,7 +132,11 @@ def _decode_outputs(outputs, imgsz, lb, image_id, class_map, score_th,
     else:
         boxes = np.concatenate(
             [_to_nc(outputs["box_xy"]), _to_nc(outputs["box_wh"])], axis=1)
-    scores = _to_nc(outputs["scores"])                        # (N,nc)
+    # Orient scores explicitly by expected nc, not via generic heuristic
+    nc = len(class_map)
+    raw = outputs["scores"]
+    raw = raw[0] if raw.ndim == 3 else raw
+    scores = raw.T if raw.shape[0] == nc else raw              # (N,nc)
     cx, cy, w, h = boxes.T
     xyxy = np.stack([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], 1)
     flat = scores.reshape(-1)
@@ -144,7 +145,6 @@ def _decode_outputs(outputs, imgsz, lb, image_id, class_map, score_th,
         return []
     if keep.size > top_k:
         keep = keep[np.argpartition(flat[keep], -top_k)[-top_k:]]
-    nc = scores.shape[1]
     anc, cl, sc = keep // nc, keep % nc, flat[keep]
     box_lb = xyxy[anc]
     idx = nms_class_aware(box_lb, sc, cl, iou)[:max_det]
