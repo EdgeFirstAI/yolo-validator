@@ -43,6 +43,14 @@ Canonical metrics schema (``benchmarks/metrics/<platform>.json``)::
                                          # + optional "npu": {"h2d","core","d2h"}
                                          #   driver sub-timings (Ara240: DMA in,
                                          #   core NPU compute, DMA out — means)
+                                         # pre/e2e EXCLUDE JPEG decode on the
+                                         # ara2 lane (separate stats-only stage)
+                                         # but INCLUDE it on tflite lanes — do
+                                         # not compare pre/e2e across lanes.
+                                         # ara2 fps_wall also excludes the
+                                         # per-chunk model reload forced by the
+                                         # libaraclient double-free workaround
+                                         # (optimistic steady-state figure).
           "n_images": 5000,
           "batch": 1                   # inference batch size (1 = single-stream)
         }

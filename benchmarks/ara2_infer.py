@@ -11,8 +11,11 @@ sequential inferences in one process, the orchestrator runs the val set in
 partial predictions/timings, and scores once with ``canonical_eval``
 (crowd-as-normal). Per frame it records the wall-clock inference roundtrip
 plus the driver-reported sub-timings: DMA host→device, **core NPU compute**,
-DMA device→host (dvapi reports them in µs despite its struct comments saying
-ms). ``pre`` = letterbox+quantize (JPEG decode is reported separately under
+DMA device→host (the transfer-time struct comments claim ms but the firmware
+reports µs — verified empirically, a ~1.2 MB PCIe DMA is ~2 ms not 2 s; the
+compute-time field is documented µs). Each worker prints its inference-wall
+mean vs the driver subtotal so the unit assumption is eyeballable per chunk.
+``pre`` = letterbox+quantize (JPEG decode is reported separately under
 ``stats`` only); ``post`` = dequant+NMS+masks+COCO/RLE (same as the tflite
 lane); ``e2e`` = pre+inf+post; single-stream, so stages are additive.
 
@@ -306,7 +309,8 @@ def worker(a) -> None:
     ret, session = dvapi.DVSession.create_via_unix_socket(a.socket)
     if ret != dvapi.dv_status_code.DV_SUCCESS:
         raise SystemExit(f"cannot connect to dvproxy at {a.socket}: {ret} "
-                         "(start it: systemctl start dvproxy)")
+                         "(is the Ara2 proxy running? e.g. "
+                         "systemctl start ara2)")
     with session:
         ret, endpoints = session.get_endpoint_list()
         if ret != dvapi.dv_status_code.DV_SUCCESS or not endpoints:
@@ -360,7 +364,8 @@ def worker(a) -> None:
                 timings["inference"].append((t2 - t1) * 1e3)
                 timings["postprocess"].append((t3 - t2) * 1e3)
                 timings["e2e"].append((t3 - t0) * 1e3)
-                # dvapi struct comments say ms; firmware actually reports µs.
+                # Transfer-time struct comments claim ms; the firmware
+                # actually reports µs (compute time is documented µs).
                 timings["npu_h2d"].append(
                     stats.input_transfer_time / 1000 if stats else float("nan"))
                 timings["npu_core"].append(
@@ -385,8 +390,17 @@ def worker(a) -> None:
                "imgsz": imgsz, "preds": preds, "timings": timings}
     a.partial_out.parent.mkdir(parents=True, exist_ok=True)
     a.partial_out.write_text(json.dumps(partial))
+    # Driver subtotal vs wall roundtrip: subtotal must sit a little BELOW the
+    # wall mean (positive host-staging residual). If it comes out ~1000× off
+    # or above the wall, the µs unit assumption for the DMA fields is wrong.
+    inf_mean = _mean(timings["inference"])
+    sub = sum(_mean(timings[k]) or 0.0
+              for k in ("npu_h2d", "npu_core", "npu_d2h"))
+    unit_note = (f", inf wall {inf_mean:.2f} ms vs driver subtotal "
+                 f"{sub:.2f} ms (host overhead {inf_mean - sub:+.2f} ms)"
+                 if inf_mean and sub else "")
     print(f"[worker] chunk {a.start}+{len(chunk)}: {len(preds)} dets, "
-          f"{wall:.1f}s -> {a.partial_out}")
+          f"{wall:.1f}s{unit_note} -> {a.partial_out}")
 
 
 # ── Orchestrator (parent process) ──────────────────────────────────────────
