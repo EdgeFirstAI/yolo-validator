@@ -428,6 +428,16 @@ def orchestrate(a) -> None:
                "--warmup", str(a.warmup), "--score-th", str(a.score_th),
                "--iou", str(a.iou), "--max-det", str(a.max_det)]
         for attempt in (1, 2):
+            # Fresh proxy state per attempt: seg (4-output) worker cycles
+            # progressively corrupt the Ara2 proxy daemon — after ~7 cycles
+            # every subsequent worker double-frees regardless of chunk size,
+            # so a retry without a service restart just fails again.
+            if a.between_chunks:
+                # shell=True is intentional: the flag's value IS a shell
+                # command supplied by the local operator on their own CLI
+                # (compound commands like 'systemctl restart ara2 && sleep 5'
+                # require it); no untrusted input reaches this string.
+                subprocess.call(a.between_chunks, shell=True)
             if subprocess.call(cmd) == 0:
                 break
             retries += 1
@@ -481,6 +491,10 @@ def main() -> None:
     ap.add_argument("--iou", type=float, default=0.7)
     ap.add_argument("--max-det", type=int, default=300)
     ap.add_argument("--socket", default="/var/run/ara2.sock")
+    ap.add_argument("--between-chunks", default=None,
+                    help="shell command run before every chunk attempt, e.g. "
+                         "'systemctl restart ara2 && sleep 5' — resets vendor "
+                         "proxy state that decays across seg worker cycles")
     ap.add_argument("--no-eval", action="store_true",
                     help="skip scoring (score on the host via --finalize)")
     ap.add_argument("--finalize", type=Path,
