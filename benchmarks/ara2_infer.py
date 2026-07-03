@@ -7,9 +7,17 @@ dequantize → the same shared NumPy decode the other lanes use.
 
 Because libaraclient aborts (glibc double free) after roughly 100–200
 sequential inferences in one process, the orchestrator runs the val set in
-**chunked subprocesses** (``--chunk``, default 100, retried once), merges the
-partial predictions/timings, and scores once with ``canonical_eval``
-(crowd-as-normal). Per frame it records the wall-clock inference roundtrip
+**chunked subprocesses** (``--chunk``, default 100, retried once, split and
+re-queued on repeat failure), merges the partial predictions/timings, and
+scores once with ``canonical_eval`` (crowd-as-normal).
+
+.. warning:: KNOWN-BUGGY for segmentation val2017 (2026-07-03): the
+   libaraclient heap corruption is allocation-churn dependent and under seg
+   postprocessing load (conf 0.001, ~150 masks/frame) it aborts runs faster
+   than chunking, per-chunk ``--between-chunks`` service restarts, and
+   chunk splitting can contain — full seg val5k has not completed on
+   runtime 1.2.1. Detection val5k completes reliably. Track the vendor
+   defect before re-attempting seg on this lane. Per frame it records the wall-clock inference roundtrip
 plus the driver-reported sub-timings: DMA host→device, **core NPU compute**,
 DMA device→host (the transfer-time struct comments claim ms but the firmware
 reports µs — verified empirically, a ~1.2 MB PCIe DMA is ~2 ms not 2 s; the
