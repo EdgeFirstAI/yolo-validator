@@ -237,3 +237,259 @@ def finalize(merged_path, gt, out_dir) -> Path:
           f"{cfg['fps_wall']:.2f} fps | inf {cfg['timing']['inference']:.1f} ms "
           f"(npu core {cfg['npu']['core'] or float('nan'):.2f} ms) -> {out_path}")
     return out_path
+
+
+# ── On-target worker (dvapi imported lazily — hosts have no libaraclient) ──
+
+def _parse_model(dv_model) -> dict:
+    """Input/output metadata from a loaded DVModel (dvapi structs)."""
+    ip = dv_model.input_param[0]
+    pp = ip.preprocess_param
+    meta = {"h": ip.height, "w": ip.width, "c": ip.nch,
+            "qn": pp.qn, "offset": pp.offset, "signed": bool(pp.is_signed),
+            "outputs": {}}
+    seen: set = set()
+    for j in range(dv_model.num_outputs):
+        op = dv_model.output_param[j]
+        shape = _strip_trailing_ones([op.nch, op.height, op.width])
+        if op.depth > 1:
+            shape = _strip_trailing_ones([op.nch, op.depth,
+                                          op.height, op.width])
+        role = _infer_role(shape, seen)
+        seen.add(role)
+        opp = op.postprocess_param
+        if op.bpp == 1:
+            dtype = "int8" if opp.is_signed else "uint8"
+        elif op.bpp == 2:
+            dtype = "int16" if opp.is_signed else "uint16"
+        else:
+            dtype = "float32"
+        meta["outputs"][role] = {"index": j, "shape": tuple(shape),
+                                 "dtype": dtype, "qn": opp.qn,
+                                 "offset": opp.offset}
+    return meta
+
+
+def _preprocess(bgr, h, w, qn, offset, signed):
+    """BGR → letterbox → [0,1] → affine int8 quantize → CHW flat.
+
+    Matches Ultralytics LetterBox(center=True) + the Ara240 input quant
+    (quantized = round(pixel/255 / qn + offset)).
+    """
+    h0, w0 = bgr.shape[:2]
+    scale = min(w / w0, h / h0)
+    nw, nh = int(round(w0 * scale)), int(round(h0 * scale))
+    pad_x, pad_y = (w - nw) // 2, (h - nh) // 2
+    resized = cv2.resize(bgr, (nw, nh), interpolation=cv2.INTER_LINEAR)
+    canvas = cv2.copyMakeBorder(resized, pad_y, h - nh - pad_y,
+                                pad_x, w - nw - pad_x,
+                                cv2.BORDER_CONSTANT, value=(114, 114, 114))
+    rgb = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+    x = rgb.astype(np.float32) / 255.0
+    q = np.round(x / qn + offset)
+    dt = np.int8 if signed else np.uint8
+    info = np.iinfo(dt)
+    q = np.clip(q, info.min, info.max).astype(dt)
+    flat = np.ascontiguousarray(q.transpose(2, 0, 1)).reshape(-1)
+    return flat, LetterboxInfo(scale, pad_x, pad_y, w0, h0)
+
+
+def worker(a) -> None:
+    """Process images[start:start+count] in THIS process and write a partial.
+
+    Kept to ≤ --chunk images because libaraclient double-frees after
+    ~100–200 sequential inferences; the orchestrator restarts us per chunk.
+    """
+    from benchmarks import ara2_dvapi as dvapi
+    images = _list_images(a.coco_val, a.limit)
+    chunk = images[a.start:a.start + a.count]
+    ret, session = dvapi.DVSession.create_via_unix_socket(a.socket)
+    if ret != dvapi.dv_status_code.DV_SUCCESS:
+        raise SystemExit(f"cannot connect to dvproxy at {a.socket}: {ret} "
+                         "(start it: systemctl start dvproxy)")
+    with session:
+        ret, endpoints = session.get_endpoint_list()
+        if ret != dvapi.dv_status_code.DV_SUCCESS or not endpoints:
+            raise SystemExit("no Ara240 endpoints available")
+        ret, model = session.load_model_from_file(endpoints[0], str(a.dvm))
+        if ret != dvapi.dv_status_code.DV_SUCCESS:
+            raise SystemExit(f"model load failed for {a.dvm}: {ret}")
+        meta = _parse_model(model)
+        out_tensors = model._allocate_output_tensors()
+        class_map = coco80_to_coco91()
+        imgsz = meta["w"]
+        if a.start == 0:
+            print(f"[worker] input {meta['c']}x{meta['h']}x{meta['w']} "
+                  f"qn={meta['qn']:.6f} offset={meta['offset']}; outputs: "
+                  + ", ".join(f"{r}={m['shape']}/{m['dtype']}"
+                              for r, m in meta["outputs"].items()))
+            if "unknown" in meta["outputs"] or ("boxes" not in meta["outputs"] \
+                    and "box_xy" not in meta["outputs"]):
+                raise SystemExit(f"unrecognized output layout: "
+                                 f"{[(r, m['shape']) for r, m in meta['outputs'].items()]}")
+
+        def infer_one(path, timings=None, preds=None):
+            t_start = time.perf_counter()
+            bgr = cv2.imread(str(path))
+            if bgr is None:
+                raise RuntimeError(f"failed to decode {path}")
+            t0 = time.perf_counter()
+            flat, lb = _preprocess(bgr, meta["h"], meta["w"], meta["qn"],
+                                   meta["offset"], meta["signed"])
+            t1 = time.perf_counter()
+            tensor = dvapi.DVTensor(flat, model.input_param[0])
+            ret, req = model.infer_sync([tensor], out_tensors)
+            t2 = time.perf_counter()
+            if ret != dvapi.dv_status_code.DV_SUCCESS:
+                raise RuntimeError(f"inference failed on {path.name}: {ret}")
+            stats = req.stats
+            outputs = {}
+            for role, om in meta["outputs"].items():
+                raw = out_tensors[om["index"]].numpy_data.copy()
+                dt = np.dtype(om["dtype"])
+                if dt != np.int8:
+                    raw = raw.view(dt)
+                raw = raw.reshape(om["shape"])
+                outputs[role] = (raw.astype(np.float32) - om["offset"]) * om["qn"]
+            recs = _decode_outputs(outputs, imgsz, lb, int(path.stem),
+                                   class_map, a.score_th, a.iou, a.max_det)
+            t3 = time.perf_counter()
+            if timings is not None:
+                timings["decode"].append((t0 - t_start) * 1e3)
+                timings["preprocess"].append((t1 - t0) * 1e3)
+                timings["inference"].append((t2 - t1) * 1e3)
+                timings["postprocess"].append((t3 - t2) * 1e3)
+                timings["e2e"].append((t3 - t0) * 1e3)
+                # dvapi struct comments say ms; firmware actually reports µs.
+                timings["npu_h2d"].append(
+                    stats.input_transfer_time / 1000 if stats else float("nan"))
+                timings["npu_core"].append(
+                    stats.npu_compute_ms if stats else float("nan"))
+                timings["npu_d2h"].append(
+                    stats.output_transfer_time / 1000 if stats else float("nan"))
+            if preds is not None:
+                preds.extend(recs)
+
+        for p in chunk[:min(a.warmup, len(chunk))]:
+            infer_one(p)                       # warmup, unmeasured
+        timings = {k: [] for k in STAGE_KEYS}
+        preds: list[dict] = []
+        wall0 = time.perf_counter()
+        for p in chunk:
+            infer_one(p, timings, preds)
+        wall = time.perf_counter() - wall0
+        # Explicit unload before session __exit__: DVModel.__del__ after
+        # disconnect double-frees (see ara2-validator reference.py).
+        model.unload()
+    partial = {"start": a.start, "count": len(chunk), "wall_s": wall,
+               "imgsz": imgsz, "preds": preds, "timings": timings}
+    a.partial_out.parent.mkdir(parents=True, exist_ok=True)
+    a.partial_out.write_text(json.dumps(partial))
+    print(f"[worker] chunk {a.start}+{len(chunk)}: {len(preds)} dets, "
+          f"{wall:.1f}s -> {a.partial_out}")
+
+
+# ── Orchestrator (parent process) ──────────────────────────────────────────
+
+def orchestrate(a) -> None:
+    images = _list_images(a.coco_val, a.limit)
+    if not images:
+        raise SystemExit(f"no *.jpg under {a.coco_val}")
+    n = len(images)
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    out_dir = Path(a.out).expanduser()
+    partial_dir = out_dir / f"partials_{a.model}_{ts}"
+    starts = list(range(0, n, a.chunk))
+    print(f"[ara2_infer] {a.model} [{a.workflow_vendor}] {Path(a.dvm).name}: "
+          f"{n} images in {len(starts)} chunks of {a.chunk}")
+    retries = 0
+    for start in starts:
+        count = min(a.chunk, n - start)
+        partial = partial_dir / f"partial_{start:06d}.json"
+        cmd = [sys.executable, "-m", "benchmarks.ara2_infer", "--worker",
+               "--dvm", str(a.dvm), "--model", a.model,
+               "--coco-val", str(a.coco_val), "--limit", str(a.limit),
+               "--start", str(start), "--count", str(count),
+               "--partial-out", str(partial), "--socket", a.socket,
+               "--warmup", str(a.warmup), "--score-th", str(a.score_th),
+               "--iou", str(a.iou), "--max-det", str(a.max_det)]
+        for attempt in (1, 2):
+            if subprocess.call(cmd) == 0:
+                break
+            retries += 1
+            print(f"[ara2_infer] chunk {start} failed "
+                  f"(attempt {attempt}/2, first image {images[start].name})")
+        else:
+            raise SystemExit(f"chunk {start} failed twice; aborting "
+                             f"(first image: {images[start].name})")
+    merged = _merge_partials(sorted(partial_dir.glob("partial_*.json")))
+    merged["meta"] = {
+        "model": a.model,
+        "task": "segment" if "seg" in a.model else "detect",
+        "vendor": a.workflow_vendor, "artifact": Path(a.dvm).name,
+        "device": a.device_label, "chunks": len(starts),
+        "chunk_retries": retries,
+        "host": {"machine": platform.machine(), "node": platform.node(),
+                 "system": platform.platform(), "device": a.device_label}}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    merged_path = out_dir / f"merged_{a.model}_{a.workflow_vendor}_{ts}.json"
+    merged_path.write_text(json.dumps(merged))
+    print(f"[ara2_infer] merged {merged['n_images']} images, "
+          f"{len(merged['preds'])} dets -> {merged_path}")
+    if a.no_eval:
+        print(f"[ara2_infer] --no-eval: score later with\n  python -m "
+              f"benchmarks.ara2_infer --finalize {merged_path} --gt <gt.json>")
+        return
+    finalize(merged_path, a.gt, out_dir)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--dvm", type=Path, help="pre-compiled .dvm model")
+    ap.add_argument("--model", help="variant label, e.g. yolov8n / yolov8n-seg")
+    ap.add_argument("--workflow-vendor", default="kinara-sdk-1.2.1",
+                    help="artifact provenance recorded per row "
+                         "(kinara-sdk-1.2.1 | nxp-hf-2.0.4)")
+    ap.add_argument("--device-label", default="imx95-ara240")
+    ap.add_argument("--coco-val", type=Path,
+                    default=Path.home() / "coco" / "val2017")
+    ap.add_argument("--gt", type=Path, default=Path.home() / "coco"
+                    / "annotations" / "instances_val2017.json")
+    ap.add_argument("--out", type=Path, default=Path("benchmarks/results/ara2"))
+    ap.add_argument("--limit", type=int, default=0, help="0 = all val2017")
+    ap.add_argument("--chunk", type=int, default=100,
+                    help="images per worker process (libaraclient crashes "
+                         "past ~100-200 inferences per process)")
+    ap.add_argument("--warmup", type=int, default=3)
+    ap.add_argument("--score-th", type=float, default=0.001)
+    ap.add_argument("--iou", type=float, default=0.7)
+    ap.add_argument("--max-det", type=int, default=300)
+    ap.add_argument("--socket", default="/var/run/ara2.sock")
+    ap.add_argument("--no-eval", action="store_true",
+                    help="skip scoring (score on the host via --finalize)")
+    ap.add_argument("--finalize", type=Path,
+                    help="score a merged_*.json and emit the benchmark doc")
+    ap.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--start", type=int, default=0, help=argparse.SUPPRESS)
+    ap.add_argument("--count", type=int, default=0, help=argparse.SUPPRESS)
+    ap.add_argument("--partial-out", type=Path, help=argparse.SUPPRESS)
+    a = ap.parse_args()
+    if a.finalize:
+        finalize(a.finalize, a.gt, a.out)
+        return
+    if not a.dvm or not a.model:
+        ap.error("--dvm and --model are required")
+    a.model = _safe_label(a.model)
+    if not a.dvm.expanduser().exists():
+        raise SystemExit(f"not found: {a.dvm}")
+    a.dvm = a.dvm.expanduser().resolve()
+    if a.worker:
+        worker(a)
+    else:
+        orchestrate(a)
+
+
+if __name__ == "__main__":
+    main()

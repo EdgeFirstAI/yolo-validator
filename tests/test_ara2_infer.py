@@ -163,3 +163,11 @@ def test_build_doc_schema(tmp_path):
     assert cfg["vendor"] == "kinara-sdk-1.2.1"
     assert cfg["batch"] == 1 and cfg["n_images"] == 4
     assert cfg["stats"]["inference"]["p99"] == pytest.approx(1.0)
+
+
+def test_cli_entry_importable_without_dvapi(monkeypatch):
+    """Host machines have no libaraclient; importing the module and asking
+    for --help must not touch benchmarks.ara2_dvapi."""
+    import benchmarks.ara2_infer as m
+    assert hasattr(m, "main") and hasattr(m, "worker") \
+        and hasattr(m, "orchestrate")
