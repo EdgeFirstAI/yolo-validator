@@ -23,8 +23,9 @@ The baseline is the Ultralytics/Vendor workflow (validated by the Ultralytics va
 | rpi5-hailo8l | INT8 | yolo-validator | 6 | 3 | 0.3603 | 0.2863 | — | — | 42.0 |
 | imx95-neutron | INT8 | yolo-validator | 6 | 6 | 0.3285 | 0.2331 | — | — | 6.5 |
 | imx8mp-vsi | INT8 | yolo-validator | 5 | 6 | 0.3285 | 0.2339 | — | — | 6.3 |
+| imx95-ara240 | INT8 | yolo-validator | 3 | 0 | 0.3089 | — | — | — | 8.6 |
 
-*Baseline = Ultralytics/Vendor workflow (validator column); proxy Δ = yolo-validator vs the Ultralytics baseline where both run (one-sided). Generated from `benchmarks/metrics/` — 10 platform(s).*
+*Baseline = Ultralytics/Vendor workflow (validator column); proxy Δ = yolo-validator vs the Ultralytics baseline where both run (one-sided). Generated from `benchmarks/metrics/` — 11 platform(s).*
 <!-- END:cross-platform -->
 
 ---
@@ -316,6 +317,46 @@ The pipelining is the product: it is the difference between minutes and hours fo
 | Ultralytics ONNX FP32 reference | 3.4 hours | **39× slower** |
 
 EdgeFirst validates the entire 15-model suite in **5.2 minutes**; the Ultralytics validator — even native on the same Neural Engine — needs **over an hour**, and the FP32 reference **3.4 hours** — at full box-AP parity. Same pipelining advantage as Parts 1/1b, now on Apple Silicon: an order-of-magnitude (up to **64×** on segmentation) throughput gain that turns edge-model validation from an overnight job into a coffee break.
+
+---
+
+# Part 1g — NXP i.MX 95 + Kinara Ara-2 (imx95-ara240, INT8 DVM)
+
+The vendor reference on this platform is NXP's **pre-compiled INT8 DVMs** published at [nxp/YOLOv8](https://huggingface.co/nxp/YOLOv8) (Kinara-SDK PTQ, COCO-calibrated), run through the vendor's own host stack — the Kinara **dvapi** client (ctypes over libaraclient, via the on-board Ara2 proxy) with OpenCV letterbox preprocessing — and decoded/scored by yolo-validator on-target with the same shared NumPy path and pycocotools scoring every other lane uses (crowd-as-normal, full val2017, `conf=0.001 iou=0.7 max_det=300 imgsz=640`). The vendor runtime aborts (glibc double free) after roughly 100–200 sequential inferences on multi-output models, so validation runs in 100-image chunks across fresh processes; per-frame measurements are unaffected. Host: i.MX 95 FRDM (6× Cortex-A55), Ara-2 runtime 1.2.1. Detection covers the vendor's published yolov8 n/s/m artifacts.
+
+## Detection — vendor reference INT8
+
+| Model | FP32 ONNX | vendor INT8 | **Δ INT8** | AP50 | inf (ms) | FPS |
+|---|--:|--:|--:|--:|--:|--:|
+| yolov8n | 0.3670 | 0.3089 | −5.8 pp | 0.4743 | 10.2 | 8.6 |
+| yolov8s | 0.4425 | 0.3758 | −6.7 pp | 0.5606 | 13.9 | 10.2 |
+| yolov8m | 0.4943 | 0.4099 | −8.4 pp | 0.6079 | 25.4 | 8.8 |
+
+The yolov8n INT8 box AP (0.3089) reproduces NXP's published claim for these artifacts (30.06 %) within 0.8 pp. The INT8 quantization cost grows with model size (−5.8 → −8.4 pp), the usual pattern for full-integer PTQ on this family.
+
+## NPU inference breakdown — core compute vs DMA vs host
+
+The Ara-2 driver reports per-inference firmware timings, so the wall-clock roundtrip (`inf` above) decomposes into PCIe DMA transfers, **core NPU compute**, and host-side staging — the axis on which host stacks can be compared while the silicon does identical work:
+
+| Model | DMA h2d | **NPU core** | DMA d2h | driver subtotal | wall roundtrip | host overhead |
+|---|--:|--:|--:|--:|--:|--:|
+| yolov8n | 1.86 | **3.38** | 1.15 | 6.39 | 10.2 | +3.8 |
+| yolov8s | 1.86 | **7.06** | 1.15 | 10.07 | 13.9 | +3.8 |
+| yolov8m | 1.86 | **18.54** | 1.15 | 21.55 | 25.4 | +3.9 |
+
+All values ms, means over val2017. DMA costs are constant (input tensor is the same 640×640×3 int8 for all three; the detect output heads are the same shapes), so model size moves only the core-compute term. The vendor host stack adds a steady **≈3.8 ms** of staging around the driver subtotal — the input tensor passes through a host buffer on the way to the proxy and the outputs come back the same way.
+
+## Per-stage latency
+
+`pre` = letterbox + int8 quantize; `post` = dequantize + NMS + COCO formatting at the validation threshold; JPEG decode (≈8 ms on the A55) is excluded from `pre`/`e2e` on this lane and reported separately in the raw stats:
+
+| Model | pre | inf | post | e2e (ms) | FPS |
+|---|--:|--:|--:|--:|--:|
+| yolov8n | 28.4 | 10.2 | 69.6 | 108.2 | 8.6 |
+| yolov8s | 20.6 | 13.9 | 55.2 | 89.7 | 10.2 |
+| yolov8m | 28.6 | 25.4 | 51.1 | 105.1 | 8.8 |
+
+Single-stream, stage-serial by design (Invariants): every stage runs to completion per frame, so the columns are additive and the CPU-side pre/post costs on the Cortex-A55 dominate the e2e budget — the NPU itself is 3–19 ms of a ~90–110 ms frame. `post` shrinks as model size grows because larger models emit fewer above-threshold candidates on val2017 (yolov8n 146 → yolov8m 101 detections/image mean at conf 0.001).
 
 ---
 

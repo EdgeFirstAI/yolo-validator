@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-Standalone, portable reference validator for Ultralytics YOLO detection and segmentation across runtimes (ONNX Runtime — CPU/CUDA/CoreML providers — and TensorRT implemented as core backends; HailoRT INT8 measured on-target via the benchmark harness; TFLite/Ara2 planned). It reproduces the Ultralytics validation pipeline using the same OpenCV/NumPy operations as Ultralytics, with no hard PyTorch/CUDA dependency, so it serves as the accuracy and performance reference on platforms the Ultralytics validator cannot run (Hailo, Ara2, i.MX, plain CPU). It is the proxy used to benchmark the EdgeFirst stack.
+Standalone, portable reference validator for Ultralytics YOLO detection and segmentation across runtimes (ONNX Runtime — CPU/CUDA/CoreML providers — and TensorRT implemented as core backends; HailoRT INT8, TFLite INT8 (i.MX NPU delegates), and Ara2 INT8 (Kinara dvapi, i.MX 95) measured on-target via the benchmark harness). It reproduces the Ultralytics validation pipeline using the same OpenCV/NumPy operations as Ultralytics, with no hard PyTorch/CUDA dependency, so it serves as the accuracy and performance reference on platforms the Ultralytics validator cannot run (Hailo, Ara2, i.MX, plain CPU). It is the proxy used to benchmark the EdgeFirst stack.
 
 ## Commands
 ```bash
@@ -31,4 +31,4 @@ python -m benchmarks.benchmark_a --models yolov8n yolov8n-seg yolo26n --device c
 - See `BENCHMARK.md` (Part 1: EdgeFirst vs reference; Part 2: proxy fidelity) and `README.md`.
 
 ## Scope
-Core backends behind the `Backend` protocol (`yolo_validator/backends/`, via `load_backend`): ONNX Runtime (`--provider cpu|cuda|coreml`) and TensorRT. HailoRT INT8 is exercised on-target by `benchmarks/hailo_infer.py` (shared `canonical_eval`), producing the `rpi5-hailo8l` results — a benchmark-side on-device path, not a registered core backend. TFLite and Ara2 (NXP i.MX / Ara240 NPU) are planned, to land behind the same `Backend` protocol.
+Core backends behind the `Backend` protocol (`yolo_validator/backends/`, via `load_backend`): ONNX Runtime (`--provider cpu|cuda|coreml`) and TensorRT. Benchmark-side on-device paths (shared `canonical_eval`, not registered core backends): `benchmarks/hailo_infer.py` (HailoRT INT8 → `rpi5-hailo8l`), `benchmarks/tflite_infer.py` (TFLite INT8 delegates → `imx95-neutron`, `imx8mp-vsi`), and `benchmarks/ara2_infer.py` (vendor pre-compiled Kinara DVMs via the vendored `ara2_dvapi.py` ctypes wrapper; chunked worker subprocesses dodge a libaraclient double-free on multi-output models; records driver npu h2d/core/d2h sub-timings alongside wall roundtrip → `imx95-ara240`). Registering these behind the `Backend` protocol remains future work.

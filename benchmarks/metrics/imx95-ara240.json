@@ -1,0 +1,108 @@
+{
+  "platform": "imx95-ara240",
+  "host": {
+    "machine": "aarch64",
+    "node": "imx95-19x19-lpddr5-frdm-pro",
+    "system": "Linux-6.18.2-1.0.0-geadd2daf9032-aarch64-with-glibc2.42",
+    "device": "imx95-ara240"
+  },
+  "eval": "crowd-as-normal",
+  "rows": [
+    {
+      "model": "yolov8m",
+      "variant": "yolov8m",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "kinara-sdk",
+        "calib": "coco-val2017"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-hf",
+      "engine": "ara2",
+      "box_ap": 0.4098642219525795,
+      "box_ap50": 0.6078650646554485,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 8.796929165305649,
+      "latency_ms": {
+        "pre": 28.59708569329232,
+        "inf": 25.356166256498547,
+        "post": 51.10560766723938,
+        "e2e": 105.05885961703025,
+        "npu": {
+          "h2d": 1.8605171999999999,
+          "core": 18.54183940078125,
+          "d2h": 1.1463264
+        }
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov8n",
+      "variant": "yolov8n",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "kinara-sdk",
+        "calib": "coco-val2017"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-hf",
+      "engine": "ara2",
+      "box_ap": 0.30886440683443434,
+      "box_ap50": 0.4742807190467711,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 8.557145282931252,
+      "latency_ms": {
+        "pre": 28.422205897280946,
+        "inf": 10.178357504447922,
+        "post": 69.63637677892112,
+        "e2e": 108.23694018064998,
+        "npu": {
+          "h2d": 1.8576122000000004,
+          "core": 3.377331296777344,
+          "d2h": 1.151697
+        }
+      },
+      "n_images": 5000,
+      "batch": 1
+    },
+    {
+      "model": "yolov8s",
+      "variant": "yolov8s",
+      "task": "detect",
+      "precision": "INT8",
+      "quant": {
+        "method": "kinara-sdk",
+        "calib": "coco-val2017"
+      },
+      "lane": "baseline",
+      "validator": "yolo-validator",
+      "workflow": "vendor:nxp-hf",
+      "engine": "ara2",
+      "box_ap": 0.375849307814953,
+      "box_ap50": 0.5606263010880055,
+      "mask_ap": null,
+      "mask_ap50": null,
+      "fps_wall": 10.176038379361032,
+      "latency_ms": {
+        "pre": 20.58104838933796,
+        "inf": 13.899380224570631,
+        "post": 55.19584777471609,
+        "e2e": 89.67627638862469,
+        "npu": {
+          "h2d": 1.8566342,
+          "core": 7.059905892871093,
+          "d2h": 1.1496094
+        }
+      },
+      "n_images": 5000,
+      "batch": 1
+    }
+  ]
+}
