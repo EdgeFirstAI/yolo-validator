@@ -97,36 +97,30 @@ def _dvApiObj():
     # but the SDK-relative paths above won't find it.
     if not lib_loaded:
         import ctypes.util
-        soname = None
         if curr_platform == "Linux":
             os_info = os.uname()
-            if "x86_64" in os_info[4]:
-                soname = ctypes.util.find_library("araclient_x86_64")
-            else:
-                soname = ctypes.util.find_library("araclient_aarch64")
-                # Newer BSPs (imx95 frdm) ship a versioned soname without the
-                # arch suffix: /usr/lib/libaraclient.so.1.2.1 (+ .so.1 link).
+            arch = "x86_64" if "x86_64" in os_info[4] else "aarch64"
+            # Try every candidate with an actual dlopen — ldconfig caches can
+            # hold phantom entries for removed libs (seen on imx95 frdm), and
+            # newer BSPs ship a versioned soname without the arch suffix
+            # (/usr/lib/libaraclient.so.1.2.1 + .so.1 link).
+            for soname in [ctypes.util.find_library(f"araclient_{arch}"),
+                           ctypes.util.find_library("araclient"),
+                           f"/usr/lib/libaraclient_{arch}.so",
+                           f"/usr/local/lib/libaraclient_{arch}.so",
+                           "/usr/lib/libaraclient.so.1",
+                           "/usr/lib/libaraclient.so",
+                           "/usr/local/lib/libaraclient.so.1",
+                           "/usr/local/lib/libaraclient.so"]:
                 if not soname:
-                    soname = ctypes.util.find_library("araclient")
-                # find_library may return None if ldconfig doesn't index it;
-                # try well-known system paths directly
-                if not soname:
-                    for candidate in ["/usr/lib/libaraclient_aarch64.so",
-                                      "/usr/local/lib/libaraclient_aarch64.so",
-                                      "/usr/lib/libaraclient.so.1",
-                                      "/usr/lib/libaraclient.so",
-                                      "/usr/local/lib/libaraclient.so.1",
-                                      "/usr/local/lib/libaraclient.so"]:
-                        if os.path.exists(candidate):
-                            soname = candidate
-                            break
-        if soname:
-            try:
-                DV_API_OBJ = CDLL(soname)
-                lib_loaded = True
-                logger.info("loaded dvinfclient lib (system fallback): %s", soname)
-            except Exception:
-                pass
+                    continue
+                try:
+                    DV_API_OBJ = CDLL(soname)
+                    lib_loaded = True
+                    logger.info("loaded dvinfclient lib (system fallback): %s", soname)
+                    break
+                except OSError:
+                    logger.info("failed to load dvinfclient lib: %s", soname)
 
     if not lib_loaded:
         raise DVClientLibNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), "unable to load dvinfclient library")
