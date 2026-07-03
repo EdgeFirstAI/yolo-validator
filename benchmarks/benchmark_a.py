@@ -451,6 +451,7 @@ def run_benchmark_a(
     skip_yv: bool = False,
     edgefirst_session_id: str | None = None,
     batch: int = 1,
+    ultralytics_parity: bool = False,
 ) -> dict:
     """Run the benchmark configs for one model variant.
 
@@ -514,6 +515,19 @@ def run_benchmark_a(
     models_dir = output_dir / "_models"
     results_per_config: dict[str, dict] = {}
 
+    # WS1.2 Ultralytics-parity lane. When --ultralytics-parity is set, the
+    # Ultralytics reference lanes run with rect=True (rectangular inference —
+    # the Ultralytics default, vs the square-letterbox rect=False used
+    # elsewhere to match yolo-validator), and their COCO scoring IGNORES crowd
+    # GT (standard COCO: iscrowd=1 annotations are ignored, not forced to
+    # normal targets). This reproduces the official Ultralytics val() number.
+    # The yolo-validator proxy lanes are unaffected.
+    _ce_ult = {"ignore_crowd": True} if ultralytics_parity else {}
+
+    def _run_ult(*a, **kw):
+        kw.setdefault("rect", ultralytics_parity)
+        return run_ultralytics(*a, **kw)
+
     def _set_end2end(model_obj, mode: str):
         """Apply export_mode to a loaded YOLO model's Detect head."""
         for m in model_obj.model.modules():
@@ -534,10 +548,10 @@ def run_benchmark_a(
             try:
                 ult_model = _YOLO(str(pt_path))
                 _set_end2end(ult_model, export_mode)
-                ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
+                ult_pt = _run_ult(str(pt_path), run_yaml, task,
                                          pre_val_model=ult_model, device=0)
                 results_per_config["ult-pt"] = {
-                    **canonical_eval(run_gt_json, ult_pt["predictions"], iou_types),
+                    **canonical_eval(run_gt_json, ult_pt["predictions"], iou_types, **_ce_ult),
                     "timing": rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"]),
                     "n_images": ult_pt["n_images"],
                     "wall_s": ult_pt["wall_s"],
@@ -551,9 +565,9 @@ def run_benchmark_a(
         # ult-engine (TensorRT) — Ultralytics val on the .engine
         print(f"\n[{label}] running ult-engine (tensorrt) ...")
         try:
-            ult_eng = run_ultralytics(engine_path, run_yaml, task, device=0)
+            ult_eng = _run_ult(engine_path, run_yaml, task, device=0)
             results_per_config["ult-engine"] = {
-                **canonical_eval(run_gt_json, ult_eng["predictions"], iou_types),
+                **canonical_eval(run_gt_json, ult_eng["predictions"], iou_types, **_ce_ult),
                 "timing": rebin_ultralytics(ult_eng["speed"], ult_eng["n_images"]),
                 "n_images": ult_eng["n_images"],
                 "wall_s": ult_eng["wall_s"],
@@ -637,10 +651,10 @@ def run_benchmark_a(
             try:
                 ult_model = _YOLO(str(pt_path))
                 _set_end2end(ult_model, export_mode)
-                ult_pt = run_ultralytics(str(pt_path), run_yaml, task,
+                ult_pt = _run_ult(str(pt_path), run_yaml, task,
                                           pre_val_model=ult_model, device=_ult_device,
                                           batch=batch, half=use_half)
-                ult_pt_metrics = canonical_eval(run_gt_json, ult_pt["predictions"], iou_types)
+                ult_pt_metrics = canonical_eval(run_gt_json, ult_pt["predictions"], iou_types, **_ce_ult)
                 ult_pt_timing = rebin_ultralytics(ult_pt["speed"], ult_pt["n_images"])
                 results_per_config["ult-pt"] = {
                     **ult_pt_metrics,
@@ -657,9 +671,9 @@ def run_benchmark_a(
         # ---- Config 2: ult-onnx ----
         print(f"\n[{label}] running ult-onnx ...")
         try:
-            ult_onnx = run_ultralytics(onnx_path, run_yaml, task, device=_ult_device,
+            ult_onnx = _run_ult(onnx_path, run_yaml, task, device=_ult_device,
                                        batch=batch, half=use_half)
-            ult_onnx_metrics = canonical_eval(run_gt_json, ult_onnx["predictions"], iou_types)
+            ult_onnx_metrics = canonical_eval(run_gt_json, ult_onnx["predictions"], iou_types, **_ce_ult)
             ult_onnx_timing = rebin_ultralytics(ult_onnx["speed"], ult_onnx["n_images"])
             results_per_config["ult-onnx"] = {
                 **ult_onnx_metrics,
@@ -684,8 +698,8 @@ def run_benchmark_a(
             try:
                 coreml_path = export_to_coreml(str(pt_path), str(models_dir),
                                                export_mode, half=True)
-                ult_cml = run_ultralytics(coreml_path, run_yaml, task)
-                ult_cml_metrics = canonical_eval(run_gt_json, ult_cml["predictions"], iou_types)
+                ult_cml = _run_ult(coreml_path, run_yaml, task)
+                ult_cml_metrics = canonical_eval(run_gt_json, ult_cml["predictions"], iou_types, **_ce_ult)
                 ult_cml_timing = rebin_ultralytics(ult_cml["speed"], ult_cml["n_images"])
                 results_per_config["ult-coreml"] = {
                     **ult_cml_metrics,
@@ -896,6 +910,15 @@ def build_parser() -> argparse.ArgumentParser:
                         "from Studio and adds an edgefirst-profiler row to the "
                         "benchmark table. Intended for single-model runs; applies to "
                         "every variant when multiple --models are specified.")
+    p.add_argument("--ultralytics-parity", action="store_true",
+                   help="Run the Ultralytics-parity configuration on the "
+                        "Ultralytics reference lanes: rect=True (rectangular "
+                        "inference, the Ultralytics default) AND crowd GT "
+                        "IGNORED during COCO scoring (standard COCO: iscrowd=1 "
+                        "annotations are ignored, not forced to normal "
+                        "targets). Reproduces the official Ultralytics val() "
+                        "number. The yolo-validator proxy lanes are "
+                        "unaffected.")
     return p
 
 
@@ -937,6 +960,8 @@ def _spawn_variant_worker(model_name: str, export_mode: str, args) -> int:
         cmd.append("--skip-ult-pt")
     if args.edgefirst_session:
         cmd += ["--edgefirst-session", args.edgefirst_session]
+    if args.ultralytics_parity:
+        cmd.append("--ultralytics-parity")
     print(f"[isolate] spawning fresh process: {model_name} ({export_mode})")
     result = subprocess.run(cmd)
     if result.returncode != 0:
@@ -1061,6 +1086,7 @@ def main() -> None:
                     skip_yv=args.skip_yv,
                     edgefirst_session_id=args.edgefirst_session,
                     batch=args.batch,
+                    ultralytics_parity=args.ultralytics_parity,
                 )
             except Exception as e:
                 print(f"[ERROR] {label} failed: {e}")

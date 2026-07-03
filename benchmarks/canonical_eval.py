@@ -23,6 +23,8 @@ def canonical_eval(
     gt_json_path: str,
     predictions: list[dict],
     iou_types: tuple[str, ...] = ("bbox",),
+    *,
+    ignore_crowd: bool = False,
 ) -> dict:
     """Like evaluate_coco but restricts COCOeval.params.imgIds to the image_ids
     present in predictions. This ensures subset runs and all configs are compared
@@ -32,6 +34,10 @@ def canonical_eval(
         gt_json_path: path to COCO ground-truth JSON (instances_val2017.json or subset).
         predictions: list of COCO-format prediction dicts (each must have 'image_id').
         iou_types: tuple of iou_type strings, e.g. ("bbox",) or ("bbox", "segm").
+        ignore_crowd: when False (default) force iscrowd=0 on every GT
+            annotation (EdgeFirst-parity: crowd scored as a normal target).
+            When True leave iscrowd untouched so pycocotools ignores iscrowd=1
+            GT per the standard COCO/Ultralytics convention.
 
     Returns:
         Same dict structure as evaluate_coco: {iou_type: {metric_name: float}}
@@ -41,13 +47,19 @@ def canonical_eval(
         return {t: {n: 0.0 for n in _NAMES} for t in iou_types}
 
     with contextlib.redirect_stdout(io.StringIO()):
-        # iscrowd filtering is not currently supported: every ground-truth
-        # annotation is scored as a normal target (crowd annotations are NOT
-        # ignored), matching how the EdgeFirst stack validates.
         with open(gt_json_path, encoding="utf-8") as f:
             gt = json.load(f)
-        for ann in gt.get("annotations", []):
-            ann["iscrowd"] = 0
+        if not ignore_crowd:
+            # Default (EdgeFirst-parity) behaviour: force iscrowd=0 so every
+            # ground-truth annotation is scored as a normal target — crowd
+            # annotations are NOT ignored, matching how the EdgeFirst stack
+            # validates.
+            for ann in gt.get("annotations", []):
+                ann["iscrowd"] = 0
+        # WS1.2 Ultralytics-parity: when ignore_crowd=True we leave iscrowd
+        # untouched, so pycocotools applies the standard COCO rule — GT with
+        # iscrowd=1 are IGNORED (never scored as FP/FN), exactly as the
+        # official Ultralytics/COCO evaluation does.
         coco_gt = COCO()
         coco_gt.dataset = gt
         coco_gt.createIndex()

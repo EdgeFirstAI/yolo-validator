@@ -140,3 +140,37 @@ def test_canonical_eval_multiple_iou_types(tmp_path):
     assert "segm" in results
     assert set(results["bbox"].keys()) == {"AP", "AP50", "AP75", "APs", "APm", "APl",
                                             "AR1", "AR10", "AR100", "ARs", "ARm", "ARl"}
+
+
+def test_canonical_eval_ignore_crowd_toggles_iscrowd(tmp_path):
+    """WS1.2: ignore_crowd controls whether iscrowd=1 GT are ignored.
+
+    image 1 has a normal GT (iscrowd=0) that the single prediction matches, plus
+    a separate crowd GT (iscrowd=1) that nothing predicts.
+      * ignore_crowd=True  (COCO/Ultralytics): crowd GT is ignored → AP ~ 1.0.
+      * ignore_crowd=False (EdgeFirst default): crowd forced to a normal target →
+        it becomes an unmatched FN → recall 0.5 → AP ~ 0.5.
+    """
+    import json
+    gt = {
+        "images": [{"id": 1, "file_name": "img1.jpg", "width": 640, "height": 480}],
+        "annotations": [
+            {"id": 1, "image_id": 1, "category_id": 1,
+             "bbox": [10.0, 10.0, 50.0, 50.0], "area": 2500.0, "iscrowd": 0},
+            {"id": 2, "image_id": 1, "category_id": 1,
+             "bbox": [300.0, 300.0, 50.0, 50.0], "area": 2500.0, "iscrowd": 1},
+        ],
+        "categories": [{"id": 1, "name": "thing", "supercategory": "object"}],
+    }
+    gt_path = str(tmp_path / "gt_crowd.json")
+    with open(gt_path, "w") as f:
+        json.dump(gt, f)
+    preds = [{"image_id": 1, "category_id": 1,
+              "bbox": [10.0, 10.0, 50.0, 50.0], "score": 0.9}]
+
+    ap_ignore = canonical_eval(gt_path, preds, ignore_crowd=True)["bbox"]["AP"]
+    ap_force = canonical_eval(gt_path, preds, ignore_crowd=False)["bbox"]["AP"]
+
+    assert ap_ignore > 0.99, f"ignore_crowd=True should give AP~1.0, got {ap_ignore}"
+    assert ap_force < 0.6, f"ignore_crowd=False should penalise the crowd FN, got {ap_force}"
+    assert ap_ignore > ap_force + 0.3
