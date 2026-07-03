@@ -413,12 +413,14 @@ def orchestrate(a) -> None:
     ts = time.strftime("%Y%m%d_%H%M%S")
     out_dir = Path(a.out).expanduser()
     partial_dir = out_dir / f"partials_{a.model}_{ts}"
-    starts = list(range(0, n, a.chunk))
+    queue: list[tuple[int, int]] = [(s, min(a.chunk, n - s))
+                                    for s in range(0, n, a.chunk)]
     print(f"[ara2_infer] {a.model} [{a.workflow_vendor}] {Path(a.dvm).name}: "
-          f"{n} images in {len(starts)} chunks of {a.chunk}")
+          f"{n} images in {len(queue)} chunks of {a.chunk}")
     retries = 0
-    for start in starts:
-        count = min(a.chunk, n - start)
+    workers_run = 0
+    while queue:
+        start, count = queue.pop(0)
         partial = partial_dir / f"partial_{start:06d}.json"
         cmd = [sys.executable, "-m", "benchmarks.ara2_infer", "--worker",
                "--dvm", str(a.dvm), "--model", a.model,
@@ -427,31 +429,43 @@ def orchestrate(a) -> None:
                "--partial-out", str(partial), "--socket", a.socket,
                "--warmup", str(a.warmup), "--score-th", str(a.score_th),
                "--iou", str(a.iou), "--max-det", str(a.max_det)]
+        ok = False
         for attempt in (1, 2):
-            # Fresh proxy state per attempt: seg (4-output) worker cycles
-            # progressively corrupt the Ara2 proxy daemon — after ~7 cycles
-            # every subsequent worker double-frees regardless of chunk size,
-            # so a retry without a service restart just fails again.
             if a.between_chunks:
                 # shell=True is intentional: the flag's value IS a shell
                 # command supplied by the local operator on their own CLI
                 # (compound commands like 'systemctl restart ara2 && sleep 5'
                 # require it); no untrusted input reaches this string.
                 subprocess.call(a.between_chunks, shell=True)
+            workers_run += 1
             if subprocess.call(cmd) == 0:
+                ok = True
                 break
             retries += 1
-            print(f"[ara2_infer] chunk {start} failed "
+            print(f"[ara2_infer] chunk {start}+{count} failed "
                   f"(attempt {attempt}/2, first image {images[start].name})")
-        else:
-            raise SystemExit(f"chunk {start} failed twice; aborting "
-                             f"(first image: {images[start].name})")
+        if not ok:
+            # Fault isolation for the libaraclient heap corruption: a chunk
+            # that fails twice is split and re-queued rather than aborting
+            # the run — shorter worker lifetimes with less allocation churn
+            # sail through ranges that crash at full chunk size. Only an
+            # image that fails alone (never observed) aborts the run.
+            if count > 1:
+                half = count // 2
+                print(f"[ara2_infer] splitting chunk {start}+{count} -> "
+                      f"{start}+{half}, {start + half}+{count - half}")
+                queue.insert(0, (start + half, count - half))
+                queue.insert(0, (start, half))
+            else:
+                raise SystemExit(
+                    f"image {images[start].name} fails in an isolated "
+                    f"single-image worker; aborting")
     merged = _merge_partials(sorted(partial_dir.glob("partial_*.json")))
     merged["meta"] = {
         "model": a.model,
         "task": "segment" if "seg" in a.model else "detect",
         "vendor": a.workflow_vendor, "artifact": Path(a.dvm).name,
-        "device": a.device_label, "chunks": len(starts),
+        "device": a.device_label, "chunks": workers_run,
         "chunk_retries": retries,
         "host": {"machine": platform.machine(), "node": platform.node(),
                  "system": platform.platform(), "device": a.device_label}}
