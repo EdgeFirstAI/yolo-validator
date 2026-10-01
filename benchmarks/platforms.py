@@ -27,7 +27,8 @@ Canonical metrics schema (``benchmarks/metrics/<platform>.json``)::
           "precision": "FP32",           # FP32 | FP16 | INT8 | INT16
           "quant": {                     # how the artifact was quantized
             "method": "none",            # none | trt-entropy | hailo-model-zoo
-                                         #      | tflite-ptq | nxp-eiq | ...
+                                         #      | tflite-ptq | nxp-eiq
+                                         #      | ort-qnn-qdq | ...
             "calib":  null               # e.g. "train2017/500" | null
           },
           "lane":      "baseline",       # baseline | edgefirst
@@ -35,7 +36,7 @@ Canonical metrics schema (``benchmarks/metrics/<platform>.json``)::
                                          #      | edgefirst-studio
           "workflow":  "ultralytics",    # ultralytics | vendor:<name>
                                          #      | edgefirst-studio
-          "engine":    "onnx",           # pytorch|onnx|tensorrt|coreml|hailo|...
+          "engine":    "onnx",           # pytorch|onnx|tensorrt|coreml|hailo|qnn|...
           "box_ap": 0.0, "box_ap50": 0.0,
           "mask_ap": null, "mask_ap50": null,
           "fps_wall": 0.0,
@@ -119,6 +120,14 @@ PLATFORMS = {
         "baseline_validator": "yolo-validator", "vendor": "ara2",
         "edgefirst_key": "imx95-ara240",
     },
+    "iq9075-htp": {
+        # Ultralytics format=qnn (ORT QNN QDQ W8A16 → offline HTP context binary,
+        # compiled for QCS9075 / SoC model 77), validated on-target by the
+        # Ultralytics validator through onnxruntime-qnn (Dragonwing IQ-9075).
+        "backend": "onnxruntime-qnn", "device": "htp",
+        "baseline_validator": "ultralytics", "vendor": "qualcomm-qnn",
+        "edgefirst_key": "iq9075-htp",
+    },
 }
 
 # Maps a benchmark_a config key to (validator, engine). All baseline configs use
@@ -128,6 +137,7 @@ CONFIG_LANE = {
     "ult-onnx":    ("ultralytics", "onnx"),
     "ult-coreml":  ("ultralytics", "coreml"),
     "ult-engine":  ("ultralytics", "tensorrt"),
+    "ult-qnn":     ("ultralytics", "qnn"),
     "yv-torch":    ("yolo-validator", "torch"),
     "yv-numpy":    ("yolo-validator", "numpy"),
     "yv-tensorrt": ("yolo-validator", "tensorrt"),

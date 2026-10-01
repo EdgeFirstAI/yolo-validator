@@ -29,6 +29,7 @@ def run_ultralytics(
     half: bool = False,
     batch: int = 1,
     rect: bool = False,
+    callbacks: dict | None = None,
 ) -> dict:
     """Run Ultralytics val and collect predictions + speed.
 
@@ -48,6 +49,8 @@ def run_ultralytics(
                natively). The portable yolo-validator stays single-stream by design.
         rect: rectangular (aspect-sorted) batches. False keeps the square 640
               letterbox identical across batch sizes, isolating the batch effect.
+        callbacks: optional ``{event: fn}`` Ultralytics callbacks added to the
+              model before val (e.g. ``on_val_batch_start`` to time image loading).
 
     Returns:
         dict with keys:
@@ -61,6 +64,8 @@ def run_ultralytics(
 
     t0 = time.perf_counter()
     model = pre_val_model if pre_val_model is not None else YOLO(model_path)
+    for event, fn in (callbacks or {}).items():
+        model.add_callback(event, fn)
 
     # rect=False forces square 640×640 letterbox, matching yolo-validator behaviour.
     # Ultralytics default rect=True uses rectangular inference which gives different
