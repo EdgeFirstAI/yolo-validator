@@ -32,7 +32,7 @@ END = "<!-- END:cross-platform -->"
 
 # Representative engine preference per validator (avoid double-counting the
 # multiple engines benchmark_a runs for the same validator).
-_ULT_ENGINES = ("onnx", "tensorrt", "pytorch", "coreml")
+_ULT_ENGINES = ("onnx", "tensorrt", "pytorch", "coreml", "qnn")
 _YV_ENGINES = ("numpy", "tensorrt", "torch", "hailo", "tflite")
 
 

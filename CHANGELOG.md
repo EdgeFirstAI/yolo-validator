@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow SemVer.
 
 ## [Unreleased]
+### Added
+- Qualcomm Dragonwing IQ-9075 benchmark lane (`iq9075-htp`, W8A16 on the
+  Hexagon HTP): `benchmarks/export_qnn.py` runs the Ultralytics `format=qnn`
+  export (ONNX Runtime QNN QDQ quantization, 500 train2017 calibration images,
+  offline context binary for QNN SoC model 77), and `benchmarks/qnn_infer.py`
+  runs the Ultralytics validator on-target through `onnxruntime-qnn`, re-scores
+  with `canonical_eval`, and records image-load and validation-phase timing
+  alongside the per-image stage means. Results for the full detection and
+  segmentation model set are in `benchmarks/metrics/iq9075-htp.json` and
+  BENCHMARK.md Part 1h.
+- `run_ultralytics(callbacks=...)` attaches Ultralytics validator callbacks.
 
 ## [0.2.0] - 2026-06-15
 ### Added

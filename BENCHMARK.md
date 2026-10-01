@@ -1,6 +1,6 @@
 # Benchmark — EdgeFirst optimizations over the Ultralytics baseline
 
-This document shows how the **EdgeFirst** stack augments the Ultralytics baseline across platforms — taking the same models and making them **faster** (lower end-to-end latency and pipelined throughput) and **more accurate** (a smart quantizer) through its edge-optimized preprocessing, postprocessing, and quantization. The **baseline** is the Ultralytics workflow, validated by the **Ultralytics validator** where it runs (CPU, CUDA, Jetson) and by the portable **yolo-validator** proxy where it cannot (Hailo, i.MX, Ara2).
+This document shows how the **EdgeFirst** stack augments the Ultralytics baseline across platforms — taking the same models and making them **faster** (lower end-to-end latency and pipelined throughput) and **more accurate** (a smart quantizer) through its edge-optimized preprocessing, postprocessing, and quantization. The **baseline** is the Ultralytics workflow, validated by the **Ultralytics validator** where it runs (CPU, CUDA, Jetson, Qualcomm HTP) and by the portable **yolo-validator** proxy where it cannot (Hailo, i.MX, Ara2).
 
 All accuracy is COCO val2017 (5000 images), one canonical pycocotools re-score per config. **iscrowd filtering is not currently supported** — every annotation is scored as a normal target, matching how the EdgeFirst stack validates, so the deltas below are convention-matched. Host: RTX 4060, i9-13900F, Ubuntu 24.04, torch 2.6.0+cu124 / ultralytics 8.4.68 / onnxruntime-gpu 1.21.0. Parity: `conf=0.001 iou=0.7 max_det=300 imgsz=640 rect=False batch=1`.
 
@@ -24,8 +24,9 @@ The baseline is the Ultralytics/Vendor workflow (validated by the Ultralytics va
 | imx95-neutron | INT8 | yolo-validator | 6 | 6 | 0.3285 | 0.2331 | — | — | 6.5 |
 | imx8mp-vsi | INT8 | yolo-validator | 5 | 6 | 0.3285 | 0.2339 | — | — | 6.3 |
 | imx95-ara240 | INT8 | yolo-validator | 3 | 0 | 0.3089 | — | — | — | 8.6 |
+| iq9075-htp | INT16 | ultralytics | 12 | 9 | 0.3536 | 0.2946 | — | — | 31.0 |
 
-*Baseline = Ultralytics/Vendor workflow (validator column); proxy Δ = yolo-validator vs the Ultralytics baseline where both run (one-sided). Generated from `benchmarks/metrics/` — 11 platform(s).*
+*Baseline = Ultralytics/Vendor workflow (validator column); proxy Δ = yolo-validator vs the Ultralytics baseline where both run (one-sided). Generated from `benchmarks/metrics/` — 12 platform(s).*
 <!-- END:cross-platform -->
 
 ---
@@ -357,6 +358,75 @@ All values ms, means over val2017. DMA costs are constant (input tensor is the s
 | yolov8m | 28.6 | 25.4 | 51.1 | 105.1 | 8.8 |
 
 Single-stream, stage-serial by design (Invariants): every stage runs to completion per frame, so the columns are additive and the CPU-side pre/post costs on the Cortex-A55 dominate the e2e budget — the NPU itself is 3–19 ms of a ~90–110 ms frame. `post` shrinks as model size grows because larger models emit fewer above-threshold candidates on val2017 (yolov8n 146 → yolov8m 101 detections/image mean at conf 0.001).
+
+---
+
+# Part 1h — Qualcomm Dragonwing IQ-9075 (iq9075-htp, W8A16 QNN, Hexagon HTP)
+
+The reference on this platform is Ultralytics' own Qualcomm integration, end to end. The `format=qnn` export quantizes with ONNX Runtime's QNN QDQ flow to 8-bit weights and 16-bit activations (W8A16, MinMax calibration on the same 500 seeded COCO **train2017** images as Parts 1d/1e) and compiles the quantized graph offline into a QNN HTP context binary embedded in `*_qnn.onnx`; the **Ultralytics validator** then runs it on-target through `onnxruntime-qnn`, Ultralytics' QNN backend. Ultralytics lists no IQ-9075 target, so the export uses its `name="73"` (HTP v73) entry re-pointed at QNN SoC model 77 (QCS9075) — the only change to the stock workflow (`benchmarks/export_qnn.py`, `benchmarks/qnn_infer.py`). YOLO26 runs the classical head, the QNN exporter's default. Precision is recorded as INT16 (16-bit activations over 8-bit weights). Scoring matches every other lane: crowd-as-normal pycocotools re-score, full val2017, `conf=0.001 iou=0.7 max_det=300 imgsz=640 rect=False batch=1`. Host: Dragonwing IQ-9075 EVK (8× Cortex-A78AE, Hexagon HTP v73), Ubuntu 24.04, ultralytics 8.4.171, onnxruntime 1.30.0, onnxruntime-qnn 2.6.0 (QAIRT 2.50.40).
+
+## Detection
+
+| Model | FP32 ONNX | QNN W8A16 | **Δ** | AP50 | inf (ms) | FPS |
+|---|--:|--:|--:|--:|--:|--:|
+| yolov5nu | 0.3371 | 0.3257 | −1.1 pp | 0.4762 | 11.0 | 31.0 |
+| yolov5su | 0.4219 | 0.4114 | −1.0 pp | 0.5769 | 12.7 | 30.2 |
+| yolov5mu | 0.4808 | 0.4693 | −1.1 pp | 0.6370 | 19.2 | 25.8 |
+| yolov8n | 0.3670 | 0.3536 | −1.3 pp | 0.5044 | 10.7 | 31.0 |
+| yolov8s | 0.4425 | 0.4352 | −0.7 pp | 0.6012 | 12.9 | 30.0 |
+| yolov8m | 0.4943 | 0.4853 | −0.9 pp | 0.6534 | 21.2 | 24.8 |
+| yolo11n | 0.3866 | 0.3633 | −2.3 pp | 0.5172 | 11.7 | 31.2 |
+| yolo11s | 0.4588 | 0.4485 | −1.0 pp | 0.6172 | 14.5 | 29.0 |
+| yolo11m | 0.5052 | 0.4920 | −1.3 pp | 0.6595 | 23.5 | 23.0 |
+| yolo26n | 0.4022 | 0.3723 | −3.0 pp | 0.5363 | 11.5 | 32.3 |
+| yolo26s | 0.4773 | 0.4252 | −5.2 pp | 0.5952 | 14.8 | 28.9 |
+| yolo26m | 0.5240 | 0.4698 | −5.4 pp | 0.6543 | 23.8 | 23.1 |
+
+W8A16 costs 0.7–1.3 pp box AP on every yolov5u and yolov8 model and on yolo11s/m, and 2.3 pp on yolo11n. YOLO26 quantizes worst under this flow — −3.0 pp at nano and −5.2 / −5.4 pp at small / medium — enough that W8A16 yolo26m (0.4698) scores below FP32 yolo26s (0.4773).
+
+## Segmentation
+
+| Model | FP32 box | QNN box | FP32 mask | QNN mask | **Δ mask** | inf (ms) | FPS |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| yolov8n-seg | 0.3604 | 0.3496 | 0.3018 | 0.2946 | −0.7 pp | 14.7 | 4.2 |
+| yolov8s-seg | 0.4392 | 0.4277 | 0.3632 | 0.3587 | −0.5 pp | 17.2 | 4.9 |
+| yolov8m-seg | 0.4895 | 0.4791 | 0.4023 | 0.3977 | −0.5 pp | 27.9 | 5.0 |
+| yolo11n-seg | 0.3826 | 0.3592 | 0.3189 | 0.3021 | −1.7 pp | 15.4 | 4.4 |
+| yolo11s-seg | 0.4558 | 0.4438 | 0.3741 | 0.3671 | −0.7 pp | 19.0 | 5.0 |
+| yolo11m-seg | 0.5052 | 0.4920 | 0.4135 | 0.4043 | −0.9 pp | 30.5 | 5.1 |
+| yolo26n-seg | 0.3992 | 0.3579 | 0.3408 | 0.3129 | −2.8 pp | 15.9 | 5.0 |
+| yolo26s-seg | 0.4731 | 0.4229 | 0.3997 | 0.3710 | −2.9 pp | 20.2 | 5.3 |
+| yolo26m-seg | 0.5231 | 0.4637 | 0.4396 | 0.4063 | −3.3 pp | 32.4 | 4.8 |
+
+Mask AP holds within 0.5–1.7 pp for yolov8 and yolo11 and drops 2.8–3.3 pp for YOLO26, the same family ordering as detection. yolo11m-seg shares its box branch with yolo11m in the Ultralytics release weights, so its box AP equals yolo11m's (FP32 0.5052 on both).
+
+## Per-stage latency & total validation time
+
+| Model | load | pre | inf | post | e2e (ms) | FPS | val2017 time |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| yolov5nu | 7.2 | 2.6 | 11.0 | 5.9 | 19.4 | 31.0 | 2.7 min |
+| yolov5su | 7.2 | 2.6 | 12.7 | 5.6 | 20.9 | 30.2 | 2.8 min |
+| yolov5mu | 7.0 | 2.6 | 19.2 | 5.3 | 27.1 | 25.8 | 3.2 min |
+| yolov8n | 7.2 | 2.6 | 10.7 | 6.0 | 19.3 | 31.0 | 2.7 min |
+| yolov8s | 7.2 | 2.6 | 12.9 | 5.6 | 21.1 | 30.0 | 2.8 min |
+| yolov8m | 7.0 | 2.6 | 21.2 | 4.7 | 28.6 | 24.8 | 3.4 min |
+| yolo11n | 7.2 | 2.6 | 11.7 | 5.3 | 19.5 | 31.2 | 2.7 min |
+| yolo11s | 7.2 | 2.5 | 14.5 | 5.4 | 22.4 | 29.0 | 2.9 min |
+| yolo11m | 7.6 | 2.9 | 23.5 | 4.7 | 31.1 | 23.0 | 3.6 min |
+| yolo26n | 7.2 | 2.7 | 11.5 | 4.9 | 19.1 | 32.3 | 2.6 min |
+| yolo26s | 7.1 | 2.5 | 14.8 | 5.4 | 22.6 | 28.9 | 2.9 min |
+| yolo26m | 7.6 | 2.9 | 23.8 | 4.5 | 31.2 | 23.1 | 3.6 min |
+| yolov8n-seg | 10.1 | 3.1 | 14.7 | 62.8 | 80.6 | 4.2 | 19.7 min |
+| yolov8s-seg | 10.3 | 3.2 | 17.2 | 52.1 | 72.5 | 4.9 | 17.2 min |
+| yolov8m-seg | 11.5 | 3.5 | 27.9 | 47.7 | 79.1 | 5.0 | 16.8 min |
+| yolo11n-seg | 10.1 | 3.1 | 15.4 | 59.9 | 78.4 | 4.4 | 19.0 min |
+| yolo11s-seg | 10.4 | 3.2 | 19.0 | 49.8 | 72.0 | 5.0 | 16.6 min |
+| yolo11m-seg | 12.4 | 3.8 | 30.5 | 43.8 | 78.0 | 5.1 | 16.2 min |
+| yolo26n-seg | 10.1 | 3.1 | 15.9 | 53.1 | 72.1 | 5.0 | 16.8 min |
+| yolo26s-seg | 10.6 | 3.3 | 20.2 | 45.6 | 69.0 | 5.3 | 15.6 min |
+| yolo26m-seg | 12.0 | 3.7 | 32.4 | 47.2 | 83.4 | 4.8 | 17.2 min |
+
+All per-image means in ms. `load` = image read, JPEG decode and letterbox (the Ultralytics dataloader, inline on this CPU-device backend); `pre` = tensor conversion and normalization; `inf` = the model call, including the CPU-side quantize/dequantize at the context binary's float32 boundary; `post` = NMS, plus mask materialization for segmentation; `e2e` = pre + inf + post, the Ultralytics speed convention used on every Ultralytics lane. FPS is `fps_wall` — images over the whole `val` call — and val2017 time is that call's wall clock. The model call is 11–24 ms for detection and 15–32 ms for segmentation; Ultralytics' CPU postprocess for segmentation (44–63 ms) costs 1.4–4.3× the inference. For segmentation, FPS is set by the validator rather than the pipeline: its per-image metric update and mask RLE encoding at the validation threshold add 98–138 ms per image (about 2 ms for detection), more than the 80–95 ms load-plus-e2e pipeline.
 
 ---
 
